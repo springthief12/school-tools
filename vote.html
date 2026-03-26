@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>블라인드 투표 시스템</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: #0f1117;
+  color: #e0e0e0;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.screen { display: none; width: 100%; max-width: 600px; animation: fadeIn 0.4s ease; }
+.screen.active { display: block; }
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── SETUP ── */
+.app-title { text-align: center; font-size: 2rem; font-weight: 800; color: #fff; margin-bottom: 6px; }
+.app-subtitle { text-align: center; color: #555; margin-bottom: 28px; font-size: 0.88rem; }
+
+.card { background: #1a1e2e; border-radius: 14px; padding: 22px; margin-bottom: 14px; border: 1px solid #252a40; }
+.card-title { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: #6878cc; margin-bottom: 14px; }
+
+.candidate-list { display: flex; flex-direction: column; gap: 8px; }
+.candidate-row { display: flex; gap: 8px; align-items: center; }
+.candidate-row input {
+  flex: 1; background: #242840; border: 1.5px solid #30385a; border-radius: 8px;
+  padding: 10px 14px; color: #e0e0e0; font-size: 0.95rem; outline: none; transition: border-color 0.2s;
+}
+.candidate-row input:focus { border-color: #6878cc; }
+.candidate-row input::placeholder { color: #3a4060; }
+.btn-remove {
+  width: 34px; height: 34px; border-radius: 7px; border: none; cursor: pointer;
+  font-size: 0.85rem; background: #2e1e1e; color: #c05050; flex-shrink: 0; transition: background 0.2s;
+}
+.btn-remove:hover { background: #3e2222; }
+.btn-add {
+  width: 100%; background: transparent; border: 1.5px dashed #2e3555; border-radius: 8px;
+  padding: 10px; color: #444; cursor: pointer; font-size: 0.85rem; margin-top: 6px; transition: all 0.2s;
+}
+.btn-add:hover { border-color: #6878cc; color: #7888ee; }
+
+.voter-row { display: flex; align-items: center; gap: 12px; }
+.voter-row label { color: #888; font-size: 0.9rem; }
+.voter-row input {
+  width: 80px; background: #242840; border: 1.5px solid #30385a; border-radius: 8px;
+  padding: 10px; color: #e0e0e0; font-size: 1rem; text-align: center; outline: none; transition: border-color 0.2s;
+}
+.voter-row input:focus { border-color: #6878cc; }
+
+.btn-primary {
+  width: 100%; padding: 14px; background: linear-gradient(135deg, #4c5ec0, #7032d8);
+  border: none; border-radius: 10px; color: #fff; font-size: 1rem; font-weight: 700;
+  cursor: pointer; margin-top: 6px; transition: opacity 0.2s, transform 0.1s;
+}
+.btn-primary:hover { opacity: 0.88; }
+.btn-primary:active { transform: scale(0.98); }
+.error-msg { color: #e05050; font-size: 0.82rem; margin-top: 8px; text-align: center; min-height: 18px; }
+
+/* ── VOTING ── */
+.vote-header { text-align: center; margin-bottom: 28px; }
+.voter-badge {
+  display: inline-block; background: #1e2235; border: 1px solid #2e3555;
+  border-radius: 20px; padding: 5px 16px; font-size: 0.8rem; color: #6878cc; margin-bottom: 12px;
+}
+.vote-title { font-size: 1.6rem; font-weight: 800; color: #fff; }
+.vote-hint { color: #444; margin-top: 6px; font-size: 0.82rem; }
+
+.candidate-vote-list { display: flex; flex-direction: column; gap: 10px; }
+.candidate-btn {
+  padding: 18px 20px; background: #1a1e2e; border: 2px solid #252a40; border-radius: 12px;
+  color: #ddd; font-size: 1.05rem; font-weight: 600; cursor: pointer; text-align: left;
+  display: flex; align-items: center; gap: 14px; transition: all 0.18s;
+}
+.candidate-btn:hover { border-color: #6878cc; background: #1e2440; transform: translateX(4px); color: #fff; }
+.candidate-btn:active { transform: translateX(2px) scale(0.99); }
+.cnum {
+  width: 34px; height: 34px; border-radius: 50%; background: #222840;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.8rem; color: #6878cc; flex-shrink: 0; font-weight: 700;
+}
+
+/* ── BLIND OVERLAY ── */
+.blind-overlay {
+  position: fixed; inset: 0; background: #06080f;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 16px; z-index: 900; animation: fadeIn 0.3s ease;
+}
+.blind-overlay.hidden { display: none; }
+.check-anim { font-size: 4.5rem; animation: popIn 0.5s cubic-bezier(0.34,1.56,0.64,1); }
+@keyframes popIn { from { transform: scale(0); } to { transform: scale(1); } }
+.blind-title { font-size: 1.4rem; font-weight: 700; color: #ddd; }
+.blind-sub { font-size: 0.88rem; color: #444; max-width: 280px; text-align: center; line-height: 1.6; }
+.btn-next {
+  margin-top: 20px; padding: 13px 40px; background: #1e2235; border: 1.5px solid #30385a;
+  border-radius: 10px; color: #ccc; font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.2s;
+}
+.btn-next:hover { background: #252a45; border-color: #6878cc; color: #fff; }
+
+/* ── COUNTDOWN ── */
+.countdown-wrap {
+  position: fixed; inset: 0; background: rgba(6,8,15,0.92);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 14px; z-index: 950;
+}
+.countdown-wrap.hidden { display: none; }
+.cd-label { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.15em; color: #444; }
+.cd-num { font-size: 9rem; font-weight: 900; color: #fff; line-height: 1; animation: cPulse 0.85s ease; }
+@keyframes cPulse {
+  from { transform: scale(1.5); opacity: 0.3; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+
+/* ── COUNTING ── */
+.counting-screen { text-align: center; }
+.cnt-header { margin-bottom: 24px; }
+.cnt-title { font-size: 1.6rem; font-weight: 800; color: #fff; margin-bottom: 6px; }
+.cnt-counter {
+  display: inline-block; background: #1a1e2e; border: 1px solid #252a40;
+  border-radius: 20px; padding: 4px 16px; font-size: 0.8rem; color: #6878cc;
+}
+
+/* Ballot box */
+.ballot-box-wrap { margin-bottom: 8px; }
+.box-icon {
+  font-size: 3.5rem; display: block; transition: transform 0.15s;
+  filter: drop-shadow(0 4px 12px rgba(108,120,204,0.3));
+}
+.box-icon.shake { animation: boxShake 0.35s ease; }
+@keyframes boxShake {
+  0%,100% { transform: rotate(0deg) scale(1); }
+  20%      { transform: rotate(-8deg) scale(1.08); }
+  50%      { transform: rotate(6deg) scale(1.1); }
+  75%      { transform: rotate(-4deg) scale(1.05); }
+}
+.box-slot {
+  width: 70px; height: 6px; background: #1a1e2e; border: 1.5px solid #2e3555;
+  border-radius: 3px; margin: -6px auto 4px; position: relative; z-index: 2;
+}
+
+/* Paper stage */
+.paper-stage {
+  perspective: 800px;
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+
+.ballot-paper {
+  width: 270px;
+  background: linear-gradient(180deg, #fffef8 0%, #faf7ee 100%);
+  border-radius: 3px;
+  overflow: hidden;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.6), 0 4px 12px rgba(0,0,0,0.3);
+  transform-origin: top center;
+  user-select: none;
+}
+.ballot-paper.p-hidden {
+  transform: rotateX(-90deg) translateY(-10px);
+  opacity: 0;
+  transition: none;
+}
+.ballot-paper.p-show {
+  transform: rotateX(0deg) translateY(0);
+  opacity: 1;
+  transition: transform 0.5s cubic-bezier(0.34,1.15,0.64,1), opacity 0.3s ease;
+}
+.ballot-paper.p-exit {
+  transform: rotateX(75deg) translateY(-20px) scale(0.88);
+  opacity: 0;
+  transition: transform 0.32s ease-in, opacity 0.22s ease-in;
+}
+
+.paper-top-bar { height: 6px; background: linear-gradient(90deg, #4c5ec0, #7032d8); }
+.paper-inner { padding: 14px 22px 18px; }
+.paper-label {
+  font-size: 0.62rem; letter-spacing: 0.35em; color: #bbb; text-align: center;
+  margin-bottom: 10px; text-transform: uppercase; font-family: serif;
+}
+.paper-divider { border: none; border-top: 1px solid #e8e4d8; margin: 8px 0; }
+.paper-vote-row {
+  display: flex; align-items: center; gap: 12px; padding: 10px 0;
+}
+.paper-checkbox {
+  width: 22px; height: 22px; border: 1.5px solid #555; border-radius: 2px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.95rem; color: #c00; font-weight: 900;
+}
+.paper-vote-name {
+  font-size: 1.45rem; font-weight: 800; color: #111;
+  font-family: 'Batang', 'Malgun Gothic', serif;
+  transition: opacity 0.35s ease;
+}
+.paper-bottom-bar { height: 3px; background: #e8e4d8; }
+
+/* Tally */
+.tally-list { text-align: left; }
+.tally-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.tally-label {
+  width: 100px; text-align: right; font-weight: 600; color: #aaa; font-size: 0.88rem;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 0;
+}
+.tally-track { flex: 1; background: #141720; border-radius: 5px; height: 26px; overflow: hidden; border: 1px solid #1e2235; }
+.tally-fill {
+  height: 100%; background: linear-gradient(90deg, #4c5ec0, #7032d8); border-radius: 5px;
+  display: flex; align-items: center; justify-content: flex-end; padding-right: 8px;
+  font-size: 0.72rem; font-weight: 700; color: #fff;
+  transition: width 0.5s cubic-bezier(0.22,1,0.36,1);
+}
+.tally-cnt { width: 26px; text-align: left; color: #555; font-size: 0.82rem; flex-shrink: 0; }
+
+/* ── RESULT ── */
+.result-screen { text-align: center; }
+.result-title { font-size: 2rem; font-weight: 800; color: #fff; margin-bottom: 4px; }
+.result-sub { color: #444; font-size: 0.82rem; margin-bottom: 28px; }
+
+.winner-card {
+  background: linear-gradient(135deg, #18214a, #201548);
+  border: 2px solid #5868b8; border-radius: 16px; padding: 28px; margin-bottom: 28px;
+  animation: glow 2.5s ease-in-out infinite;
+}
+@keyframes glow {
+  0%,100% { box-shadow: 0 0 20px rgba(88,104,184,0.25); }
+  50%      { box-shadow: 0 0 45px rgba(88,104,184,0.55); }
+}
+.winner-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.14em; color: #6878cc; margin-bottom: 12px; }
+.winner-name { font-size: 2.4rem; font-weight: 900; color: #fff; }
+.winner-votes { color: #7888cc; margin-top: 8px; font-size: 0.88rem; }
+
+.result-bars { text-align: left; margin-bottom: 24px; }
+.result-bars-title { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.12em; color: #333; margin-bottom: 12px; }
+.r-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.r-name { width: 100px; text-align: right; font-weight: 600; font-size: 0.88rem; color: #777; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 0; }
+.r-row.winner .r-name { color: #fff; }
+.r-track { flex: 1; background: #141720; border-radius: 5px; height: 28px; overflow: hidden; border: 1px solid #1e2235; }
+.r-fill {
+  height: 100%; border-radius: 5px; display: flex; align-items: center;
+  justify-content: flex-end; padding-right: 8px; font-size: 0.72rem; font-weight: 700;
+  color: rgba(255,255,255,0.7); transition: width 0.7s cubic-bezier(0.22,1,0.36,1);
+}
+.r-row.winner .r-fill { background: linear-gradient(90deg, #4c5ec0, #7032d8); }
+.r-row:not(.winner) .r-fill { background: #222840; }
+.r-cnt { width: 32px; text-align: left; color: #444; font-size: 0.82rem; flex-shrink: 0; }
+
+.btn-restart {
+  padding: 12px 36px; background: #1a1e2e; border: 1.5px solid #252a40;
+  border-radius: 10px; color: #aaa; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: all 0.2s;
+}
+.btn-restart:hover { background: #1e2235; border-color: #6878cc; color: #fff; }
+</style>
+</head>
+<body>
+
+<!-- SETUP -->
+<div id="screen-setup" class="screen active">
+  <div class="app-title">🗳️ 블라인드 투표</div>
+  <div class="app-subtitle">후보를 등록하고 공정하게 블라인드 투표를 진행하세요</div>
+
+  <div class="card">
+    <div class="card-title">후보 목록</div>
+    <div class="candidate-list" id="candidateList"></div>
+    <button class="btn-add" onclick="addField()">＋ 후보 추가</button>
+  </div>
+
+  <div class="card">
+    <div class="card-title">투표 설정</div>
+    <div class="voter-row">
+      <label for="voterCount">총 투표자 수</label>
+      <input type="number" id="voterCount" value="5" min="1" max="200">
+      <span style="color:#333;font-size:0.85rem">명</span>
+    </div>
+  </div>
+
+  <div id="errMsg" class="error-msg"></div>
+  <button class="btn-primary" onclick="startVoting()">투표 시작하기 →</button>
+</div>
+
+<!-- VOTING -->
+<div id="screen-voting" class="screen">
+  <div class="vote-header">
+    <div class="voter-badge" id="voterBadge"></div>
+    <div class="vote-title">투표하세요</div>
+    <div class="vote-hint">후보를 선택하면 바로 투표가 완료됩니다</div>
+  </div>
+  <div class="candidate-vote-list" id="voteList"></div>
+</div>
+
+<!-- COUNTING -->
+<div id="screen-counting" class="screen">
+  <div class="counting-screen">
+    <div class="cnt-header">
+      <div class="cnt-title" id="cTitle">개표를 시작합니다</div>
+      <div class="cnt-counter" id="cCounter" style="visibility:hidden">0 / 0</div>
+    </div>
+
+    <div class="ballot-box-wrap">
+      <div class="box-slot"></div>
+      <div class="box-icon" id="boxIcon">🗳️</div>
+    </div>
+
+    <div class="paper-stage">
+      <div class="ballot-paper p-hidden" id="ballotPaper">
+        <div class="paper-top-bar"></div>
+        <div class="paper-inner">
+          <div class="paper-label">투 표 지</div>
+          <hr class="paper-divider">
+          <div class="paper-vote-row">
+            <div class="paper-checkbox" id="paperCheck" style="opacity:0">✓</div>
+            <div class="paper-vote-name" id="paperName" style="opacity:0">　</div>
+          </div>
+          <hr class="paper-divider">
+        </div>
+        <div class="paper-bottom-bar"></div>
+      </div>
+    </div>
+
+    <div class="tally-list" id="tallyList"></div>
+  </div>
+</div>
+
+<!-- RESULT -->
+<div id="screen-result" class="screen">
+  <div class="result-screen">
+    <div class="result-title">🎉 개표 완료!</div>
+    <div class="result-sub">최종 투표 결과입니다</div>
+    <div class="winner-card" id="winnerCard"></div>
+    <div class="result-bars">
+      <div class="result-bars-title">전체 결과</div>
+      <div id="resultBars"></div>
+    </div>
+    <button class="btn-restart" onclick="restart()">🔄 처음으로</button>
+  </div>
+</div>
+
+<!-- BLIND OVERLAY -->
+<div class="blind-overlay hidden" id="blindOverlay">
+  <div class="check-anim">✅</div>
+  <div class="blind-title">투표 완료!</div>
+  <div class="blind-sub" id="blindSub"></div>
+  <button class="btn-next" id="nextBtn"></button>
+</div>
+
+<!-- COUNTDOWN -->
+<div class="countdown-wrap hidden" id="cdWrap">
+  <div class="cd-label">개표 시작까지</div>
+  <div class="cd-num" id="cdNum">3</div>
+</div>
+
+<script>
+// ════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════
+const S = {
+  candidates:   [],
+  voterCount:   0,
+  currentVoter: 1,
+  votes:        [],   // candidateIdx[] — stored in vote order, shuffled before reveal
+};
+
+// ════════════════════════════════════════
+//  SETUP
+// ════════════════════════════════════════
+function init() {
+  addField('');
+  addField('');
+}
+
+function addField(val = '') {
+  const list = document.getElementById('candidateList');
+  const row  = document.createElement('div');
+  row.className = 'candidate-row';
+  row.innerHTML = `
+    <input type="text" placeholder="후보 이름 입력" value="${esc(val)}" maxlength="20"
+           onkeydown="if(event.key==='Enter')addField()">
+    <button class="btn-remove" onclick="removeField(this)">✕</button>`;
+  list.appendChild(row);
+  row.querySelector('input').focus();
+}
+
+function removeField(btn) {
+  const list = document.getElementById('candidateList');
+  if (list.children.length <= 2) { setErr('후보는 최소 2명이 필요합니다.'); return; }
+  btn.closest('.candidate-row').remove();
+  setErr('');
+}
+
+function startVoting() {
+  const names = [...document.querySelectorAll('#candidateList input')]
+    .map(i => i.value.trim()).filter(Boolean);
+  if (names.length < 2) { setErr('후보는 최소 2명이 필요합니다.'); return; }
+  const dup = names.find((n, i) => names.indexOf(n) !== i);
+  if (dup)              { setErr(`중복된 이름: "${dup}"`); return; }
+  const vc = parseInt(document.getElementById('voterCount').value);
+  if (!vc || vc < 1)    { setErr('투표자 수를 입력해주세요.'); return; }
+
+  S.candidates   = names;
+  S.voterCount   = vc;
+  S.currentVoter = 1;
+  S.votes        = [];
+  setErr('');
+  renderVoting();
+}
+
+// ════════════════════════════════════════
+//  VOTING
+// ════════════════════════════════════════
+function renderVoting() {
+  showScreen('screen-voting');
+  document.getElementById('voterBadge').textContent =
+    `${S.currentVoter}번째 투표자 / 총 ${S.voterCount}명`;
+  document.getElementById('voteList').innerHTML =
+    S.candidates.map((name, i) => `
+      <button class="candidate-btn" onclick="castVote(${i})">
+        <div class="cnum">${i + 1}</div>
+        <span>${esc(name)}</span>
+      </button>`).join('');
+}
+
+function castVote(idx) {
+  S.votes.push(idx);
+  const isLast = S.currentVoter >= S.voterCount;
+
+  document.getElementById('blindSub').textContent = isLast
+    ? '모든 투표가 완료되었습니다. 개표를 시작할 수 있습니다.'
+    : '다음 투표자가 준비되면 버튼을 눌러주세요.';
+  document.getElementById('nextBtn').textContent = isLast ? '📊 개표 시작' : '다음 투표자 →';
+  document.getElementById('nextBtn').onclick = isLast
+    ? beginCounting
+    : () => { S.currentVoter++; nextVoter(); };
+
+  document.getElementById('blindOverlay').classList.remove('hidden');
+}
+
+function nextVoter() {
+  document.getElementById('blindOverlay').classList.add('hidden');
+  renderVoting();
+}
+
+// ════════════════════════════════════════
+//  COUNTING — setup
+// ════════════════════════════════════════
+function beginCounting() {
+  document.getElementById('blindOverlay').classList.add('hidden');
+  showScreen('screen-counting');
+
+  document.getElementById('cTitle').textContent     = '개표를 시작합니다';
+  document.getElementById('cCounter').style.visibility = 'hidden';
+  document.getElementById('ballotPaper').className  = 'ballot-paper p-hidden';
+  document.getElementById('paperName').style.opacity  = '0';
+  document.getElementById('paperCheck').style.opacity = '0';
+
+  const counts = new Array(S.candidates.length).fill(0);
+  renderTally(counts);
+
+  countdown(3, () => revealAll(counts));
+}
+
+function countdown(from, cb) {
+  const wrap  = document.getElementById('cdWrap');
+  const numEl = document.getElementById('cdNum');
+  wrap.classList.remove('hidden');
+  let n = from;
+  const tick = () => {
+    if (n <= 0) { wrap.classList.add('hidden'); cb(); return; }
+    numEl.textContent = n;
+    numEl.style.animation = 'none';
+    void numEl.offsetWidth;
+    numEl.style.animation = 'cPulse 0.85s ease';
+    n--;
+    setTimeout(tick, 900);
+  };
+  tick();
+}
+
+// ════════════════════════════════════════
+//  COUNTING — reveal sequence
+// ════════════════════════════════════════
+function revealAll(counts) {
+  document.getElementById('cTitle').textContent = '개표 중...';
+  document.getElementById('cCounter').style.visibility = 'visible';
+
+  // Shuffle votes — breaks voter-to-vote correlation
+  const shuffled = [...S.votes];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+
+  let idx = 0;
+  const next = () => {
+    if (idx >= shuffled.length) {
+      paperExit(() => {
+        document.getElementById('cTitle').textContent = '개표 완료!';
+        setTimeout(showResult, 1200);
+      });
+      return;
+    }
+    const cIdx = shuffled[idx];
+    counts[cIdx]++;
+    const showMs = Math.max(300, 900 - idx * 30);
+    revealPaper(S.candidates[cIdx], idx, shuffled.length, counts, showMs, () => {
+      idx++;
+      next();
+    });
+  };
+  next();
+}
+
+function revealPaper(name, idx, total, counts, showMs, onDone) {
+  const paper   = document.getElementById('ballotPaper');
+  const nameEl  = document.getElementById('paperName');
+  const checkEl = document.getElementById('paperCheck');
+  const counter = document.getElementById('cCounter');
+  const boxIcon = document.getElementById('boxIcon');
+
+  counter.textContent = `${idx + 1} / ${total}`;
+
+  // Reset name opacity before animating
+  nameEl.style.transition = 'none';
+  nameEl.style.opacity    = '0';
+  checkEl.style.opacity   = '0';
+  nameEl.textContent      = name;
+
+  // Shake ballot box
+  boxIcon.classList.remove('shake');
+  void boxIcon.offsetWidth;
+  boxIcon.classList.add('shake');
+
+  // Reset paper to folded
+  paper.className = 'ballot-paper p-hidden';
+  void paper.offsetWidth;
+
+  // Unfold paper
+  setTimeout(() => {
+    paper.className = 'ballot-paper p-show';
+
+    // Reveal text after unfold finishes
+    setTimeout(() => {
+      nameEl.style.transition  = 'opacity 0.35s ease';
+      checkEl.style.transition = 'opacity 0.25s ease';
+      nameEl.style.opacity  = '1';
+      checkEl.style.opacity = '1';
+
+      // Update tally
+      renderTally(counts);
+
+      // Wait then fold away
+      setTimeout(() => {
+        paperExit(onDone);
+      }, showMs);
+    }, 480);
+  }, 60);
+}
+
+function paperExit(cb) {
+  const paper = document.getElementById('ballotPaper');
+  paper.className = 'ballot-paper p-exit';
+  setTimeout(cb, 340);
+}
+
+function renderTally(counts) {
+  const maxCnt = Math.max(...counts, 1);
+  document.getElementById('tallyList').innerHTML =
+    S.candidates.map((name, i) => `
+      <div class="tally-row">
+        <span class="tally-label">${esc(name)}</span>
+        <div class="tally-track">
+          <div class="tally-fill" style="width:${(counts[i] / maxCnt * 100).toFixed(1)}%">
+            ${counts[i] > 0 ? counts[i] + '표' : ''}
+          </div>
+        </div>
+        <span class="tally-cnt">${counts[i]}</span>
+      </div>`).join('');
+}
+
+// ════════════════════════════════════════
+//  RESULT
+// ════════════════════════════════════════
+function showResult() {
+  const counts = new Array(S.candidates.length).fill(0);
+  S.votes.forEach(v => counts[v]++);
+
+  const maxV   = Math.max(...counts);
+  const winners = S.candidates.filter((_, i) => counts[i] === maxV);
+  const isTie   = winners.length > 1;
+
+  showScreen('screen-result');
+
+  document.getElementById('winnerCard').innerHTML = `
+    <div class="winner-label">${isTie ? '🤝 동률' : '🏆 당선'}</div>
+    <div class="winner-name">${winners.map(esc).join(' · ')}</div>
+    <div class="winner-votes">${maxV}표 득표 / 총 ${S.voterCount}표</div>`;
+
+  const sorted = S.candidates.map((_, i) => i).sort((a, b) => counts[b] - counts[a]);
+  document.getElementById('resultBars').innerHTML =
+    sorted.map(i => {
+      const pct = S.voterCount > 0 ? (counts[i] / S.voterCount * 100).toFixed(1) : '0.0';
+      const isW = counts[i] === maxV;
+      return `
+        <div class="r-row ${isW ? 'winner' : ''}">
+          <span class="r-name">${esc(S.candidates[i])}</span>
+          <div class="r-track">
+            <div class="r-fill" style="width:0%" data-pct="${pct}%">
+              ${counts[i] > 0 ? pct + '%' : ''}
+            </div>
+          </div>
+          <span class="r-cnt">${counts[i]}표</span>
+        </div>`;
+    }).join('');
+
+  // Animate bars growing after paint
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    document.querySelectorAll('.r-fill').forEach(el => {
+      el.style.width = el.dataset.pct;
+    });
+  }));
+}
+
+// ════════════════════════════════════════
+//  UTILS
+// ════════════════════════════════════════
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.toggle('active', s.id === id));
+}
+
+function setErr(msg) { document.getElementById('errMsg').textContent = msg; }
+
+function restart() {
+  Object.assign(S, { candidates: [], voterCount: 0, currentVoter: 1, votes: [] });
+  document.getElementById('blindOverlay').classList.add('hidden');
+  document.getElementById('cdWrap').classList.add('hidden');
+  showScreen('screen-setup');
+}
+
+function esc(str) {
+  return String(str)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+init();
+</script>
+</body>
+</html>

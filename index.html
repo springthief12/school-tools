@@ -1,0 +1,61 @@
+﻿<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>솔개 학급 도구</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: #0f1117;
+  color: #e0e0e0;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+}
+.container { max-width: 480px; width: 100%; text-align: center; }
+.title { font-size: 2.4rem; font-weight: 900; color: #fff; margin-bottom: 8px; }
+.subtitle { color: #555; font-size: 0.9rem; margin-bottom: 52px; }
+
+.cards { display: flex; flex-direction: column; gap: 16px; }
+.card {
+  display: block; text-decoration: none;
+  background: #1a1e2e; border: 2px solid #252a40; border-radius: 16px;
+  padding: 28px 32px; text-align: left; transition: all 0.2s;
+}
+.card:hover {
+  border-color: #6878cc; background: #1e2440;
+  transform: translateY(-3px); box-shadow: 0 10px 32px rgba(104,120,204,0.2);
+}
+.card-icon { font-size: 2.4rem; margin-bottom: 12px; display: block; }
+.card-title { font-size: 1.2rem; font-weight: 800; color: #fff; margin-bottom: 6px; }
+.card-desc { font-size: 0.85rem; color: #666; line-height: 1.6; }
+
+.footer { margin-top: 44px; color: #2a2e40; font-size: 0.78rem; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="title">솔개 📚</div>
+  <div class="subtitle">학급 운영 도구 모음</div>
+
+  <div class="cards">
+    <a class="card" href="timetable.html">
+      <span class="card-icon">🗓️</span>
+      <div class="card-title">학급 시간표</div>
+      <div class="card-desc">2026년 3월~7월 시간표 관리. 셀 색상 설정, 기본 시간표 일괄 적용, 요일 전체 편집.</div>
+    </a>
+    <a class="card" href="vote.html">
+      <span class="card-icon">🗳️</span>
+      <div class="card-title">블라인드 투표</div>
+      <div class="card-desc">후보 등록 → 비밀 투표 → 투표지 개봉 애니메이션으로 긴장감 있는 개표 진행.</div>
+    </a>
+  </div>
+
+  <div class="footer">springthief12 · GitHub Pages</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,1110 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>2026 학교 시간표</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Malgun Gothic', '맑은 고딕', sans-serif;
+      font-size: 13px;
+      background: #eef1f6;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .app { display: flex; height: 100vh; }
+
+    /* ── LEFT PANEL ── */
+    .timetable-panel {
+      width: 70%; height: 100%;
+      overflow-y: auto; overflow-x: hidden;
+      padding: 10px 12px;
+      background: #f5f7fa;
+      border-right: 2px solid #c5cdd8;
+    }
+    .timetable-panel::-webkit-scrollbar { width: 6px; }
+    .timetable-panel::-webkit-scrollbar-track { background: #eef1f6; }
+    .timetable-panel::-webkit-scrollbar-thumb { background: #9eb3c9; border-radius: 3px; }
+
+    .app-header {
+      text-align: center;
+      background: linear-gradient(135deg, #1a3a5c 0%, #2c6fad 100%);
+      color: white; padding: 9px 0; border-radius: 6px;
+      margin-bottom: 7px; font-size: 15px; font-weight: bold;
+      letter-spacing: 1px; box-shadow: 0 2px 6px rgba(0,0,0,0.18);
+    }
+
+    .toolbar {
+      display: flex; justify-content: flex-end;
+      align-items: center; gap: 8px; margin-bottom: 8px;
+    }
+    .toolbar-hint {
+      font-size: 11px; color: #889;
+      background: #e8eef5; border-radius: 4px;
+      padding: 4px 10px;
+    }
+    .btn-template-open {
+      background: linear-gradient(135deg, #065f46, #059669);
+      color: white; border: none; border-radius: 5px;
+      padding: 6px 14px; font-size: 12px; font-weight: bold;
+      font-family: inherit; cursor: pointer; letter-spacing: 0.3px;
+      transition: filter 0.15s;
+    }
+    .btn-template-open:hover { filter: brightness(1.12); }
+
+    .month-group { margin-bottom: 10px; }
+    .month-label {
+      display: inline-block;
+      background: linear-gradient(90deg, #1a3a5c, #2c6fad);
+      color: white; padding: 4px 14px; font-weight: bold;
+      font-size: 13px; border-radius: 4px 4px 0 0; letter-spacing: 1px;
+    }
+
+    .week-block {
+      background: white; border: 1px solid #c2d0df; border-top: none;
+      margin-bottom: 8px; overflow: hidden;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+      border-radius: 0 4px 4px 4px;
+    }
+
+    /* ── TIMETABLE TABLE ── */
+    .week-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+
+    .week-table th {
+      border: 1px solid #b8c9d9; padding: 4px 3px;
+      text-align: center; font-size: 12px; font-weight: bold;
+      white-space: nowrap; line-height: 1.3;
+    }
+    .th-week { background: #1a3a5c; color: white; width: 60px; font-size: 11px; }
+
+    .th-day {
+      background: #dce8f5; color: #1a3a5c;
+      cursor: pointer; user-select: none;
+      transition: background 0.13s, color 0.13s;
+    }
+    .th-day:hover { background: #bcd4ed; }
+    .th-day.holiday { background: #fff3cd; color: #856404; }
+    .th-day.holiday:hover { background: #ffe69c; }
+    .th-day.day-active { background: #1a3a5c !important; color: white !important; }
+
+    .week-table td {
+      border: 1px solid #d0dae6; padding: 2px 4px;
+      text-align: center; height: 30px; font-size: 13px; font-weight: 700;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      transition: filter 0.12s;
+    }
+    .td-period {
+      background: #eef2f7; font-weight: bold; color: #334;
+      width: 60px; cursor: default; font-size: 12px;
+    }
+    .td-cell { cursor: pointer; background: #fff; }
+    .td-cell:hover { filter: brightness(0.91); }
+
+    /* single selection: red outline */
+    .td-cell.selected {
+      outline: 2.5px solid #e03030;
+      outline-offset: -2px; position: relative; z-index: 2;
+    }
+    /* multi-selection: orange outline */
+    .td-cell.multi-sel {
+      outline: 2.5px solid #d97706;
+      outline-offset: -2px; position: relative; z-index: 2;
+    }
+
+    /* ── RIGHT PANEL ── */
+    .detail-panel {
+      width: 30%; height: 100%; overflow-y: auto;
+      background: #fff; padding: 14px 16px;
+      display: flex; flex-direction: column;
+    }
+    .detail-panel::-webkit-scrollbar { width: 6px; }
+    .detail-panel::-webkit-scrollbar-thumb { background: #9eb3c9; border-radius: 3px; }
+
+    .detail-header {
+      font-size: 14px; font-weight: bold; color: #1a3a5c;
+      border-bottom: 2px solid #1a3a5c;
+      padding-bottom: 7px; margin-bottom: 12px;
+    }
+
+    /* empty state */
+    .empty-state {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      color: #b0b8c4; text-align: center; gap: 10px;
+    }
+    .empty-icon { font-size: 38px; }
+    .empty-text { font-size: 12px; line-height: 1.7; color: #aab; }
+
+    /* cell info card */
+    .cell-info-card {
+      background: #eef4fb; border: 1px solid #b3cde0;
+      border-radius: 6px; padding: 9px 12px; margin-bottom: 12px;
+    }
+    .info-row {
+      display: flex; align-items: center; gap: 8px;
+      margin-bottom: 3px; font-size: 12px;
+    }
+    .info-row:last-child { margin-bottom: 0; }
+    .info-label { color: #778; font-weight: bold; min-width: 36px; }
+    .info-value { color: #1a3a5c; font-weight: bold; }
+    .holiday-badge {
+      font-size: 10px; background: #fff3cd; color: #856404;
+      border: 1px solid #ffc107; padding: 1px 6px; border-radius: 10px;
+    }
+
+    /* form */
+    .section-title {
+      font-size: 11px; font-weight: bold; color: #556;
+      margin-bottom: 5px; display: flex; align-items: center; gap: 6px;
+    }
+    .section-title::before {
+      content: ''; width: 3px; height: 11px;
+      background: #2c6fad; border-radius: 2px;
+    }
+    .form-group { margin-bottom: 12px; }
+    .form-input, .form-textarea {
+      width: 100%; border: 1.5px solid #cdd8e6; border-radius: 5px;
+      padding: 7px 9px; font-size: 13px; font-family: inherit;
+      color: #222; background: #fafcff; transition: border-color 0.2s;
+    }
+    .form-input:focus, .form-textarea:focus {
+      outline: none; border-color: #2c6fad; background: white;
+    }
+    .form-textarea { height: 68px; resize: vertical; }
+
+    /* color palette */
+    .divider { border: none; border-top: 1px solid #eee; margin: 10px 0; }
+    .color-grid {
+      display: grid; grid-template-columns: repeat(5,1fr);
+      gap: 6px; margin-bottom: 8px;
+    }
+    .color-item { display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; }
+    .color-swatch {
+      width: 30px; height: 30px; border-radius: 5px; border: 2px solid #ccc;
+      cursor: pointer; transition: transform 0.13s, box-shadow 0.13s;
+    }
+    .color-swatch:hover { transform: scale(1.18); box-shadow: 0 2px 8px rgba(0,0,0,0.18); }
+    .color-swatch.active { border-color: #e03030; box-shadow: 0 0 0 2px rgba(224,48,48,0.25); }
+    .color-name { font-size: 9px; color: #778; text-align: center; }
+    /* "변경 안함" 스와치 - 대각선 빗금 패턴 */
+    .day-swatch-nochange {
+      background: repeating-linear-gradient(
+        45deg, #ccc 0px, #ccc 3px, #fff 3px, #fff 8px
+      ) !important;
+    }
+
+    .custom-color-row {
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 9px; background: #f5f7fa; border-radius: 5px; margin-top: 4px;
+    }
+    .custom-color-row label { font-size: 11px; color: #667; white-space: nowrap; }
+    .custom-color-input { width: 36px; height: 28px; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; padding: 2px; }
+    .color-preview { flex: 1; height: 22px; border-radius: 4px; border: 1px solid #ccc; transition: background-color 0.2s; }
+    .color-hex { font-size: 10px; color: #889; font-family: monospace; }
+
+    /* buttons */
+    .btn-row { display: flex; gap: 8px; margin-top: 14px; }
+    .btn {
+      flex: 1; padding: 9px 0; border: none; border-radius: 6px;
+      font-size: 13px; font-weight: bold; cursor: pointer; font-family: inherit;
+      transition: filter 0.15s, transform 0.1s;
+    }
+    .btn:hover { filter: brightness(1.1); transform: translateY(-1px); }
+    .btn:active { transform: translateY(0); }
+    .btn-save  { background: linear-gradient(135deg, #1a3a5c, #2c6fad); color: white; }
+    .btn-clear { background: linear-gradient(135deg, #b91c1c, #dc2626); color: white; }
+    .btn-cancel { background: #e2e8f0; color: #334; }
+
+    /* ── DAY EDIT PANEL ── */
+    .day-info-card {
+      background: #f0fdf4; border: 1px solid #86efac;
+      border-radius: 6px; padding: 9px 12px; margin-bottom: 12px;
+    }
+    .day-period-row {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 6px;
+    }
+    .day-period-row:last-child { margin-bottom: 0; }
+    .day-period-label {
+      width: 44px; font-size: 11px; font-weight: bold; color: #334;
+      text-align: center; background: #eef2f7;
+      padding: 5px 2px; border-radius: 4px; flex-shrink: 0;
+    }
+
+    /* ── MULTI-SELECT PANEL ── */
+    .multi-info-card {
+      background: #fffbeb; border: 1px solid #fcd34d;
+      border-radius: 6px; padding: 14px 12px; margin-bottom: 12px;
+      text-align: center;
+    }
+    .multi-count { font-size: 28px; font-weight: bold; color: #d97706; }
+    .multi-label { font-size: 12px; color: #92400e; margin-top: 4px; }
+    .multi-hint {
+      font-size: 11px; color: #889; background: #f5f7fa;
+      border-radius: 5px; padding: 7px 10px; margin-bottom: 12px;
+      line-height: 1.6;
+    }
+
+    /* toast */
+    .toast {
+      position: fixed; bottom: 18px; left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: rgba(30,30,30,0.88); color: white;
+      padding: 7px 20px; border-radius: 20px; font-size: 12px;
+      transition: transform 0.28s ease; z-index: 9999; pointer-events: none;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* ══ TEMPLATE MODAL ══ */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.55);
+      display: flex; align-items: center; justify-content: center; z-index: 1000;
+    }
+    .modal-box {
+      background: white; border-radius: 10px;
+      width: min(92vw, 860px); max-height: 92vh; overflow-y: auto;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.28); display: flex; flex-direction: column;
+    }
+    .modal-box::-webkit-scrollbar { width: 6px; }
+    .modal-box::-webkit-scrollbar-thumb { background: #9eb3c9; border-radius: 3px; }
+
+    .modal-head {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 18px 12px;
+      background: linear-gradient(135deg, #1a3a5c, #2c6fad);
+      border-radius: 10px 10px 0 0;
+    }
+    .modal-title { color: white; font-size: 15px; font-weight: bold; }
+    .modal-close {
+      background: rgba(255,255,255,0.2); border: none; color: white;
+      width: 28px; height: 28px; border-radius: 50%; font-size: 16px;
+      cursor: pointer; font-family: inherit;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s;
+    }
+    .modal-close:hover { background: rgba(255,255,255,0.4); }
+    .modal-body { padding: 16px 18px; }
+
+    .template-table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+    .template-table th {
+      background: #dce8f5; color: #1a3a5c; border: 1px solid #b8c9d9;
+      padding: 5px 4px; text-align: center; font-size: 12px; font-weight: bold;
+    }
+    .template-table th.period-th { background: #1a3a5c; color: white; width: 58px; }
+    .template-table td { border: 1px solid #d0dae6; padding: 3px; }
+    .template-input {
+      width: 100%; border: 1.5px solid #cdd8e6; border-radius: 4px;
+      padding: 5px 6px; font-size: 13px; font-weight: 700;
+      font-family: inherit; text-align: center;
+      background: #fafcff; transition: border-color 0.15s;
+    }
+    .template-input:focus { outline: none; border-color: #2c6fad; background: white; }
+
+    .apply-options { background: #f5f7fa; border-radius: 6px; padding: 12px 14px; margin-bottom: 14px; }
+    .option-row {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 10px; font-size: 12px; color: #334;
+    }
+    .option-row:last-child { margin-bottom: 0; }
+    .option-label { font-weight: bold; min-width: 72px; color: #445; }
+    .option-row select {
+      border: 1.5px solid #cdd8e6; border-radius: 4px;
+      padding: 4px 6px; font-size: 12px; font-family: inherit;
+      background: white; color: #222;
+    }
+    .radio-group { display: flex; gap: 14px; align-items: center; }
+    .radio-group label { display: flex; align-items: center; gap: 4px; cursor: pointer; font-size: 12px; }
+
+    .modal-foot {
+      display: flex; gap: 8px; padding: 12px 18px;
+      border-top: 1px solid #eee; background: #fafcff;
+      border-radius: 0 0 10px 10px;
+    }
+    .mbtn {
+      flex: 1; padding: 9px 0; border: none; border-radius: 6px;
+      font-size: 13px; font-weight: bold; cursor: pointer; font-family: inherit;
+      transition: filter 0.15s, transform 0.1s;
+    }
+    .mbtn:hover { filter: brightness(1.1); transform: translateY(-1px); }
+    .mbtn:active { transform: translateY(0); }
+    .mbtn-save-only { background: #e2e8f0; color: #334; }
+    .mbtn-apply  { background: linear-gradient(135deg, #065f46, #059669); color: white; }
+    .mbtn-cancel { background: linear-gradient(135deg, #64748b, #94a3b8); color: white; }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- 70% LEFT -->
+  <div class="timetable-panel">
+    <div class="app-header">📅 2026 학교 시간표 &nbsp;|&nbsp; 3월 1주 ~ 7월 3주</div>
+    <div class="toolbar">
+      <span class="toolbar-hint">요일 클릭: 요일 전체 수정 &nbsp;|&nbsp; Ctrl+클릭: 셀 다중 선택</span>
+      <button class="btn-template-open" onclick="openTemplateModal()">📋 기본 시간표 설정 / 일괄 적용</button>
+    </div>
+    <div id="timetableContent"></div>
+  </div>
+
+  <!-- 30% RIGHT -->
+  <div class="detail-panel">
+    <div class="detail-header" id="detailHeader">✏️ 셀 편집</div>
+    <div id="detailContent"></div>
+  </div>
+</div>
+
+<!-- TEMPLATE MODAL -->
+<div class="modal-overlay" id="templateModal" style="display:none" onclick="onOverlayClick(event)">
+  <div class="modal-box">
+    <div class="modal-head">
+      <span class="modal-title">📋 기본 시간표 설정 / 일괄 적용</span>
+      <button class="modal-close" onclick="closeTemplateModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="templateGridWrap"></div>
+      <div class="apply-options">
+        <div class="option-row">
+          <span class="option-label">적용 범위</span>
+          <select id="tmpl-from"></select>
+          <span style="color:#667">~</span>
+          <select id="tmpl-to"></select>
+        </div>
+        <div class="option-row">
+          <span class="option-label">덮어쓰기</span>
+          <div class="radio-group">
+            <label><input type="radio" name="overwrite" value="empty" checked> 빈 셀에만 적용</label>
+            <label><input type="radio" name="overwrite" value="all"> 기존 내용 모두 덮어쓰기</label>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="mbtn mbtn-save-only" onclick="saveTemplateOnly()">💾 저장만</button>
+      <button class="mbtn mbtn-apply"     onclick="applyTemplate()">✅ 저장 및 적용</button>
+      <button class="mbtn mbtn-cancel"    onclick="closeTemplateModal()">닫기</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════
+//  CONSTANTS
+// ═══════════════════════════════════
+const STORAGE_KEY  = 'school_timetable_2026';
+const TEMPLATE_KEY = 'school_timetable_2026_template';
+const PERIODS   = ['1교시','2교시','3교시','4교시','5교시','6교시','7교시'];
+const DAY_NAMES = ['월','화','수','목','금'];
+
+const HOLIDAYS = {
+  '2026-03-02': '삼일절 대체공휴일',
+  '2026-05-01': '근로자의날',
+  '2026-05-05': '어린이날',
+};
+
+const COLOR_PRESETS = [
+  { hex: '#FFFFFF', name: '기본' },  { hex: '#FFF9C4', name: '공휴일' },
+  { hex: '#C8E6C9', name: '교육' },  { hex: '#B3E5FC', name: '동아리' },
+  { hex: '#F8BBD9', name: '행사' },  { hex: '#FFE0B2', name: '시험' },
+  { hex: '#E1BEE7', name: '특별' },  { hex: '#FFCDD2', name: '중요' },
+  { hex: '#B2DFDB', name: '체험' },  { hex: '#CFD8DC', name: '기타' },
+];
+
+const WEEKS = [
+  { label:'3월 1주', month:'3월', dates:['2026-03-02','2026-03-03','2026-03-04','2026-03-05','2026-03-06'] },
+  { label:'3월 2주', month:'3월', dates:['2026-03-09','2026-03-10','2026-03-11','2026-03-12','2026-03-13'] },
+  { label:'3월 3주', month:'3월', dates:['2026-03-16','2026-03-17','2026-03-18','2026-03-19','2026-03-20'] },
+  { label:'3월 4주', month:'3월', dates:['2026-03-23','2026-03-24','2026-03-25','2026-03-26','2026-03-27'] },
+  { label:'4월 1주', month:'4월', dates:['2026-03-30','2026-03-31','2026-04-01','2026-04-02','2026-04-03'] },
+  { label:'4월 2주', month:'4월', dates:['2026-04-06','2026-04-07','2026-04-08','2026-04-09','2026-04-10'] },
+  { label:'4월 3주', month:'4월', dates:['2026-04-13','2026-04-14','2026-04-15','2026-04-16','2026-04-17'] },
+  { label:'4월 4주', month:'4월', dates:['2026-04-20','2026-04-21','2026-04-22','2026-04-23','2026-04-24'] },
+  { label:'5월 1주', month:'5월', dates:['2026-04-27','2026-04-28','2026-04-29','2026-04-30','2026-05-01'] },
+  { label:'5월 2주', month:'5월', dates:['2026-05-04','2026-05-05','2026-05-06','2026-05-07','2026-05-08'] },
+  { label:'5월 3주', month:'5월', dates:['2026-05-11','2026-05-12','2026-05-13','2026-05-14','2026-05-15'] },
+  { label:'5월 4주', month:'5월', dates:['2026-05-18','2026-05-19','2026-05-20','2026-05-21','2026-05-22'] },
+  { label:'5월 5주', month:'5월', dates:['2026-05-25','2026-05-26','2026-05-27','2026-05-28','2026-05-29'] },
+  { label:'6월 1주', month:'6월', dates:['2026-06-01','2026-06-02','2026-06-03','2026-06-04','2026-06-05'] },
+  { label:'6월 2주', month:'6월', dates:['2026-06-08','2026-06-09','2026-06-10','2026-06-11','2026-06-12'] },
+  { label:'6월 3주', month:'6월', dates:['2026-06-15','2026-06-16','2026-06-17','2026-06-18','2026-06-19'] },
+  { label:'6월 4주', month:'6월', dates:['2026-06-22','2026-06-23','2026-06-24','2026-06-25','2026-06-26'] },
+  { label:'7월 1주', month:'7월', dates:['2026-06-29','2026-06-30','2026-07-01','2026-07-02','2026-07-03'] },
+  { label:'7월 2주', month:'7월', dates:['2026-07-06','2026-07-07','2026-07-08','2026-07-09','2026-07-10'] },
+  { label:'7월 3주', month:'7월', dates:['2026-07-13','2026-07-14','2026-07-15','2026-07-16','2026-07-17'] },
+];
+
+// ═══════════════════════════════════
+//  STATE
+// ═══════════════════════════════════
+let timetableData = {};
+let templateData  = [];
+let selectedCell  = null;         // { date, pIdx }  — single-cell mode
+let selectedDay   = null;         // date string      — day-column mode
+let multiCells    = new Set();    // Set<cellId>      — multi-select mode
+let pendingColor    = '#FFFFFF';
+let pendingDayColor = null;       // null = 변경 안함, hex = 일괄 적용할 색상
+
+// ═══════════════════════════════════
+//  DATA LAYER
+// ═══════════════════════════════════
+function loadData() {
+  try { timetableData = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); }
+  catch { timetableData = {}; }
+}
+function persistData() { localStorage.setItem(STORAGE_KEY, JSON.stringify(timetableData)); }
+function cellId(date, pIdx) { return `${date}__${pIdx}`; }
+function readCell(date, pIdx) { return timetableData[cellId(date, pIdx)] || null; }
+function writeCell(date, pIdx, payload) {
+  timetableData = { ...timetableData, [cellId(date, pIdx)]: payload };
+  persistData();
+}
+function eraseCell(date, pIdx) {
+  const next = { ...timetableData };
+  delete next[cellId(date, pIdx)];
+  timetableData = next;
+  persistData();
+}
+
+function loadTemplate() {
+  try { templateData = JSON.parse(localStorage.getItem(TEMPLATE_KEY) || 'null') || makeEmptyTemplate(); }
+  catch { templateData = makeEmptyTemplate(); }
+}
+function persistTemplate() { localStorage.setItem(TEMPLATE_KEY, JSON.stringify(templateData)); }
+function makeEmptyTemplate() { return PERIODS.map(() => DAY_NAMES.map(() => '')); }
+
+// ═══════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════
+function parseDateStr(s) { const [y,m,d] = s.split('-').map(Number); return new Date(y,m-1,d); }
+function dayHeader(dateStr) {
+  const [,m,d] = dateStr.split('-').map(Number);
+  const idx = parseDateStr(dateStr).getDay() - 1;
+  return `${idx>=0&&idx<5 ? DAY_NAMES[idx] : '?'}(${m}/${d})`;
+}
+function fullDate(dateStr) {
+  const [y,m,d] = dateStr.split('-').map(Number);
+  const names = ['일','월','화','수','목','금','토'];
+  return `${y}년 ${m}월 ${d}일 (${names[parseDateStr(dateStr).getDay()]})`;
+}
+function isHoliday(d)   { return !!HOLIDAYS[d]; }
+function holidayName(d) { return HOLIDAYS[d] || ''; }
+function cellBg(dateStr, payload) {
+  if (payload) return payload.color || '#FFFFFF';
+  return isHoliday(dateStr) ? '#FFF9C4' : '#FFFFFF';
+}
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ═══════════════════════════════════
+//  RENDER — TIMETABLE
+// ═══════════════════════════════════
+function renderTimetable() {
+  const grouped = {}, order = [];
+  WEEKS.forEach(w => {
+    if (!grouped[w.month]) { grouped[w.month] = []; order.push(w.month); }
+    grouped[w.month].push(w);
+  });
+
+  let html = '';
+  order.forEach(month => {
+    html += `<div class="month-group"><div class="month-label">${month}</div>`;
+    grouped[month].forEach(w => { html += buildWeekHtml(w); });
+    html += `</div>`;
+  });
+
+  const container = document.getElementById('timetableContent');
+  container.innerHTML = html;
+
+  // Bind cell click
+  container.querySelectorAll('.td-cell').forEach(el => {
+    el.addEventListener('click', e => onCellClick(el.dataset.date, +el.dataset.p, e));
+  });
+  // Bind day-header click
+  container.querySelectorAll('.th-day').forEach(el => {
+    el.addEventListener('click', () => onDayClick(el.dataset.date));
+  });
+}
+
+function buildWeekHtml(week) {
+  let h = `<div class="week-block"><table class="week-table">`;
+  h += `<thead><tr><th class="th-week">${week.label}</th>`;
+  week.dates.forEach(date => {
+    const hol    = isHoliday(date);
+    const active = selectedDay === date;
+    h += `<th class="th-day${hol?' holiday':''}${active?' day-active':''}" data-date="${date}">`;
+    h += dayHeader(date);
+    if (hol) h += `<br><span style="font-size:9px;font-weight:normal;">${holidayName(date)}</span>`;
+    h += `</th>`;
+  });
+  h += `</tr></thead><tbody>`;
+  PERIODS.forEach((label, pIdx) => {
+    h += `<tr><td class="td-period">${label}</td>`;
+    week.dates.forEach(date => { h += buildCellHtml(date, pIdx); });
+    h += `</tr>`;
+  });
+  h += `</tbody></table></div>`;
+  return h;
+}
+
+function buildCellHtml(date, pIdx) {
+  const payload   = readCell(date, pIdx);
+  const bg        = cellBg(date, payload);
+  const content   = payload ? (payload.content || '') : '';
+  const note      = payload ? (payload.note    || '') : '';
+  const id        = cellId(date, pIdx);
+  const isSingle  = selectedCell && selectedCell.date === date && selectedCell.pIdx === pIdx;
+  const isMulti   = multiCells.has(id);
+  const cls       = 'td-cell' + (isSingle ? ' selected' : '') + (isMulti ? ' multi-sel' : '');
+  const titleAttr = note ? ` title="${note.replace(/"/g,'&quot;')}"` : '';
+  return `<td class="${cls}" style="background:${bg}" data-date="${date}" data-p="${pIdx}"${titleAttr}>${content}</td>`;
+}
+
+function refreshCellDOM(date, pIdx) {
+  const el = document.querySelector(`[data-date="${date}"][data-p="${pIdx}"]`);
+  if (!el) return;
+  const payload  = readCell(date, pIdx);
+  const id       = cellId(date, pIdx);
+  const isSingle = selectedCell && selectedCell.date === date && selectedCell.pIdx === pIdx;
+  const isMulti  = multiCells.has(id);
+  el.style.background = cellBg(date, payload);
+  el.textContent      = payload ? (payload.content || '') : '';
+  el.className        = 'td-cell' + (isSingle ? ' selected' : '') + (isMulti ? ' multi-sel' : '');
+  const note = payload ? (payload.note || '') : '';
+  if (note) el.title = note; else el.removeAttribute('title');
+}
+
+// ═══════════════════════════════════
+//  SELECTION HANDLERS
+// ═══════════════════════════════════
+function onCellClick(date, pIdx, event) {
+  const isCtrl = event.ctrlKey || event.metaKey;
+
+  if (isCtrl) {
+    // ── multi-select mode ──
+    // clear single-cell selection
+    if (selectedCell) {
+      const old = document.querySelector(`[data-date="${selectedCell.date}"][data-p="${selectedCell.pIdx}"]`);
+      if (old) old.classList.remove('selected');
+      selectedCell = null;
+    }
+    // clear day selection
+    if (selectedDay) { clearDayHighlight(); selectedDay = null; }
+
+    const id = cellId(date, pIdx);
+    const el = document.querySelector(`[data-date="${date}"][data-p="${pIdx}"]`);
+    if (multiCells.has(id)) {
+      multiCells.delete(id);
+      if (el) el.classList.remove('multi-sel');
+    } else {
+      multiCells.add(id);
+      if (el) el.classList.add('multi-sel');
+    }
+    renderDetailPanel();
+
+  } else {
+    // ── single-cell mode ──
+    // clear multi
+    if (multiCells.size > 0) { clearMultiHighlights(); multiCells.clear(); }
+    // clear day
+    if (selectedDay) { clearDayHighlight(); selectedDay = null; }
+    // deselect previous single
+    if (selectedCell) {
+      const old = document.querySelector(`[data-date="${selectedCell.date}"][data-p="${selectedCell.pIdx}"]`);
+      if (old) old.classList.remove('selected');
+    }
+    selectedCell = { date, pIdx };
+    const el = document.querySelector(`[data-date="${date}"][data-p="${pIdx}"]`);
+    if (el) el.classList.add('selected');
+    renderDetailPanel();
+  }
+}
+
+function onDayClick(date) {
+  // clear single
+  if (selectedCell) {
+    const old = document.querySelector(`[data-date="${selectedCell.date}"][data-p="${selectedCell.pIdx}"]`);
+    if (old) old.classList.remove('selected');
+    selectedCell = null;
+  }
+  // clear multi
+  if (multiCells.size > 0) { clearMultiHighlights(); multiCells.clear(); }
+  // toggle day
+  if (selectedDay === date) {
+    clearDayHighlight();
+    selectedDay = null;
+  } else {
+    clearDayHighlight();
+    selectedDay = date;
+    document.querySelectorAll(`[data-date="${date}"].th-day`).forEach(el => el.classList.add('day-active'));
+  }
+  renderDetailPanel();
+}
+
+function clearDayHighlight() {
+  document.querySelectorAll('.th-day.day-active').forEach(el => el.classList.remove('day-active'));
+}
+function clearMultiHighlights() {
+  document.querySelectorAll('.td-cell.multi-sel').forEach(el => el.classList.remove('multi-sel'));
+}
+
+// ═══════════════════════════════════
+//  RENDER — DETAIL PANEL (dispatcher)
+// ═══════════════════════════════════
+function renderDetailPanel() {
+  const hdr = document.getElementById('detailHeader');
+  if (selectedDay) {
+    hdr.textContent = '📅 요일 전체 수정';
+    renderDayPanel();
+  } else if (multiCells.size > 0) {
+    hdr.textContent = '🔲 다중 선택';
+    renderMultiPanel();
+  } else if (selectedCell) {
+    hdr.textContent = '✏️ 셀 편집';
+    renderSinglePanel();
+  } else {
+    hdr.textContent = '✏️ 셀 편집';
+    renderEmptyPanel();
+  }
+}
+
+function renderEmptyPanel() {
+  document.getElementById('detailContent').innerHTML = `
+    <div class="empty-state">
+      <div class="empty-icon">📋</div>
+      <div class="empty-text">
+        셀 클릭 → 개별 편집<br>
+        요일 헤더 클릭 → 요일 전체 수정<br>
+        Ctrl+클릭 → 다중 선택 후 일괄 삭제
+      </div>
+    </div>`;
+}
+
+// ── SINGLE CELL PANEL ──
+function renderSinglePanel() {
+  const { date, pIdx } = selectedCell;
+  const payload = readCell(date, pIdx);
+  const hol     = isHoliday(date);
+  const content = payload ? (payload.content || '') : '';
+  const note    = payload ? (payload.note    || '') : '';
+
+  pendingColor = payload ? (payload.color || '#FFFFFF') : (hol ? '#FFF9C4' : '#FFFFFF');
+
+  const swatches = COLOR_PRESETS.map((p, i) => {
+    const active = pendingColor.toUpperCase() === p.hex.toUpperCase() ? ' active' : '';
+    return `<div class="color-item" onclick="selectColor('${p.hex}')">
+      <div class="color-swatch${active}" id="sw${i}" style="background:${p.hex}"></div>
+      <div class="color-name">${p.name}</div></div>`;
+  }).join('');
+
+  document.getElementById('detailContent').innerHTML = `
+    <div class="cell-info-card">
+      <div class="info-row"><span class="info-label">날짜</span><span class="info-value">${fullDate(date)}</span></div>
+      <div class="info-row">
+        <span class="info-label">교시</span><span class="info-value">${PERIODS[pIdx]}</span>
+        ${hol ? `<span class="holiday-badge">${holidayName(date)}</span>` : ''}
+      </div>
+    </div>
+    <div class="form-group">
+      <div class="section-title">수업 / 내용</div>
+      <input id="inp-content" class="form-input" type="text"
+             placeholder="예: 202, 동아리, 자습, 대청소…"
+             value="${escHtml(content)}" maxlength="40">
+    </div>
+    <div class="form-group">
+      <div class="section-title">메모</div>
+      <textarea id="inp-note" class="form-textarea" placeholder="추가 메모…">${escHtml(note)}</textarea>
+    </div>
+    <hr class="divider">
+    <div class="form-group">
+      <div class="section-title">셀 색상</div>
+      <div class="color-grid">${swatches}</div>
+      <div class="custom-color-row">
+        <label>직접 선택</label>
+        <input type="color" class="custom-color-input" id="inp-color"
+               value="${pendingColor}" onchange="selectColor(this.value)">
+        <div class="color-preview" id="color-preview" style="background:${pendingColor}"></div>
+        <span class="color-hex" id="color-hex">${pendingColor.toUpperCase()}</span>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-save"  onclick="saveCell()">💾 저장</button>
+      <button class="btn btn-clear" onclick="clearCell()">🗑️ 지우기</button>
+    </div>`;
+
+  const inp = document.getElementById('inp-content');
+  inp.addEventListener('keydown', e => { if (e.key==='Enter') saveCell(); if (e.key==='Escape') e.target.blur(); });
+  inp.focus();
+}
+
+// ── DAY COLUMN PANEL ──
+function renderDayPanel() {
+  const date = selectedDay;
+  const hol  = isHoliday(date);
+  pendingDayColor = null; // 열 때마다 "변경 안함"으로 초기화
+
+  const rows = PERIODS.map((label, pIdx) => {
+    const payload = readCell(date, pIdx);
+    const val     = payload ? (payload.content || '') : '';
+    return `<div class="day-period-row">
+      <span class="day-period-label">${label}</span>
+      <input class="form-input" id="de-${pIdx}" type="text"
+             value="${escHtml(val)}" maxlength="40" placeholder="내용 입력…">
+    </div>`;
+  }).join('');
+
+  // 색상 스와치: 맨 앞에 "변경 안함" 추가
+  const noChangeActive = pendingDayColor === null ? ' active' : '';
+  const swatches =
+    `<div class="color-item" onclick="selectDayColor(null)">
+       <div class="color-swatch day-swatch-nochange${noChangeActive}" id="dcsw-none"></div>
+       <div class="color-name">유지</div>
+     </div>` +
+    COLOR_PRESETS.map((p, i) => {
+      const active = pendingDayColor && pendingDayColor.toUpperCase() === p.hex.toUpperCase() ? ' active' : '';
+      return `<div class="color-item" onclick="selectDayColor('${p.hex}')">
+        <div class="color-swatch${active}" id="dcsw${i}" style="background:${p.hex}"></div>
+        <div class="color-name">${p.name}</div></div>`;
+    }).join('');
+
+  document.getElementById('detailContent').innerHTML = `
+    <div class="day-info-card">
+      <div class="info-row"><span class="info-label">날짜</span><span class="info-value">${fullDate(date)}</span></div>
+      ${hol ? `<div class="info-row"><span class="holiday-badge" style="margin-left:0">${holidayName(date)}</span></div>` : ''}
+    </div>
+    <div class="form-group">
+      <div class="section-title">1~7교시 내용</div>
+      ${rows}
+    </div>
+    <hr class="divider">
+    <div class="form-group">
+      <div class="section-title">요일 전체 색상</div>
+      <div class="color-grid" style="grid-template-columns:repeat(5,1fr)">${swatches}</div>
+      <div class="custom-color-row">
+        <label>직접 선택</label>
+        <input type="color" class="custom-color-input" id="dc-color"
+               value="${pendingDayColor || '#FFFFFF'}"
+               onchange="selectDayColor(this.value)">
+        <div class="color-preview" id="dc-preview"
+             style="background:${pendingDayColor || '#e8eef5'}"></div>
+        <span class="color-hex" id="dc-hex" style="color:${pendingDayColor ? '#222' : '#aaa'}">
+          ${pendingDayColor ? pendingDayColor.toUpperCase() : '변경 안함'}
+        </span>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-save"   onclick="saveDayAll()">💾 전체 저장</button>
+      <button class="btn btn-clear"  onclick="clearDayAll()">🗑️ 전체 비우기</button>
+    </div>
+    <div class="btn-row" style="margin-top:6px">
+      <button class="btn btn-cancel" onclick="cancelDaySelect()">취소</button>
+    </div>`;
+
+  document.getElementById('de-0').focus();
+  PERIODS.forEach((_, pIdx) => {
+    const inp = document.getElementById(`de-${pIdx}`);
+    if (!inp) return;
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') saveDayAll(); });
+  });
+}
+
+// ── MULTI-SELECT PANEL ──
+function renderMultiPanel() {
+  const count = multiCells.size;
+  document.getElementById('detailContent').innerHTML = `
+    <div class="multi-info-card">
+      <div class="multi-count">${count}개</div>
+      <div class="multi-label">셀이 선택됨</div>
+    </div>
+    <div class="multi-hint">
+      Ctrl+클릭으로 셀을 추가/해제할 수 있습니다.<br>
+      일반 클릭 시 선택이 해제됩니다.
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-clear"  onclick="clearMultiCells()">🗑️ 선택 항목 지우기</button>
+      <button class="btn btn-cancel" onclick="cancelMultiSelect()">취소</button>
+    </div>`;
+}
+
+// ═══════════════════════════════════
+//  ACTION HANDLERS
+// ═══════════════════════════════════
+
+// Single cell save / clear
+function selectColor(hex) {
+  pendingColor = hex;
+  COLOR_PRESETS.forEach((p, i) => {
+    const sw = document.getElementById(`sw${i}`);
+    if (sw) sw.classList.toggle('active', p.hex.toUpperCase() === hex.toUpperCase());
+  });
+  const preview = document.getElementById('color-preview');
+  if (preview) preview.style.background = hex;
+  const lbl = document.getElementById('color-hex');
+  if (lbl) lbl.textContent = hex.toUpperCase();
+  const ci = document.getElementById('inp-color');
+  if (ci) ci.value = hex;
+}
+
+function saveCell() {
+  if (!selectedCell) return;
+  const { date, pIdx } = selectedCell;
+  writeCell(date, pIdx, {
+    content: document.getElementById('inp-content').value.trim(),
+    note:    document.getElementById('inp-note').value.trim(),
+    color:   pendingColor || '#FFFFFF',
+  });
+  refreshCellDOM(date, pIdx);
+  showToast('저장되었습니다!');
+}
+
+function clearCell() {
+  if (!selectedCell) return;
+  const { date, pIdx } = selectedCell;
+  eraseCell(date, pIdx);
+  refreshCellDOM(date, pIdx);
+  document.getElementById('inp-content').value = '';
+  document.getElementById('inp-note').value    = '';
+  selectColor(isHoliday(date) ? '#FFF9C4' : '#FFFFFF');
+  showToast('삭제되었습니다.');
+}
+
+// Day all save / cancel / clear
+function saveDayAll() {
+  if (!selectedDay) return;
+  const date = selectedDay;
+  PERIODS.forEach((_, pIdx) => {
+    const inp     = document.getElementById(`de-${pIdx}`);
+    if (!inp) return;
+    const content  = inp.value.trim();
+    const existing = readCell(date, pIdx);
+    // 색상: pendingDayColor가 설정돼 있으면 덮어쓰기, null이면 기존 유지
+    const color = pendingDayColor !== null
+      ? pendingDayColor
+      : (existing ? existing.color : '#FFFFFF');
+    if (content === '') {
+      if (existing) {
+        if (pendingDayColor !== null) {
+          // 내용은 없지만 색상만 바꾸는 경우 → 색상 저장
+          writeCell(date, pIdx, { content: '', color, note: existing.note || '' });
+        } else {
+          eraseCell(date, pIdx);
+        }
+      } else if (pendingDayColor !== null) {
+        // 원래 빈 셀에 색상만 지정
+        writeCell(date, pIdx, { content: '', color, note: '' });
+      }
+    } else {
+      writeCell(date, pIdx, {
+        content,
+        color,
+        note:  existing ? existing.note  : '',
+      });
+    }
+    refreshCellDOM(date, pIdx);
+  });
+  showToast(`${fullDate(date)} 전체를 저장했습니다!`);
+}
+
+function clearDayAll() {
+  if (!selectedDay) return;
+  const date = selectedDay;
+  PERIODS.forEach((_, pIdx) => {
+    eraseCell(date, pIdx);
+    refreshCellDOM(date, pIdx);
+    const inp = document.getElementById(`de-${pIdx}`);
+    if (inp) inp.value = '';
+  });
+  pendingDayColor = null;
+  // 색상 팔레트 초기화
+  const noneEl = document.getElementById('dcsw-none');
+  if (noneEl) noneEl.classList.add('active');
+  COLOR_PRESETS.forEach((_, i) => {
+    const sw = document.getElementById(`dcsw${i}`);
+    if (sw) sw.classList.remove('active');
+  });
+  const preview = document.getElementById('dc-preview');
+  if (preview) preview.style.background = '#e8eef5';
+  const hexLabel = document.getElementById('dc-hex');
+  if (hexLabel) { hexLabel.textContent = '변경 안함'; hexLabel.style.color = '#aaa'; }
+  showToast(`${fullDate(date)} 전체를 비웠습니다.`);
+}
+
+function selectDayColor(hex) {
+  pendingDayColor = hex; // null or hex string
+  // 스와치 active 상태 업데이트
+  const noneEl = document.getElementById('dcsw-none');
+  if (noneEl) noneEl.classList.toggle('active', hex === null);
+  COLOR_PRESETS.forEach((p, i) => {
+    const sw = document.getElementById(`dcsw${i}`);
+    if (sw) sw.classList.toggle('active', hex !== null && p.hex.toUpperCase() === hex.toUpperCase());
+  });
+  // 미리보기 업데이트
+  const preview = document.getElementById('dc-preview');
+  if (preview) preview.style.background = hex || '#e8eef5';
+  const hexLabel = document.getElementById('dc-hex');
+  if (hexLabel) {
+    hexLabel.textContent = hex ? hex.toUpperCase() : '변경 안함';
+    hexLabel.style.color = hex ? '#222' : '#aaa';
+  }
+  const ci = document.getElementById('dc-color');
+  if (ci && hex) ci.value = hex;
+}
+
+function cancelDaySelect() {
+  clearDayHighlight();
+  selectedDay = null;
+  pendingDayColor = null;
+  renderDetailPanel();
+}
+
+// Multi-select clear / cancel
+function clearMultiCells() {
+  const count = multiCells.size;
+  multiCells.forEach(id => {
+    const [date, pIdxStr] = id.split('__');
+    const pIdx = +pIdxStr;
+    eraseCell(date, pIdx);
+    refreshCellDOM(date, pIdx);
+  });
+  multiCells.clear();
+  selectedCell = null;
+  renderDetailPanel();
+  showToast(`${count}개 셀을 지웠습니다.`);
+}
+
+function cancelMultiSelect() {
+  clearMultiHighlights();
+  multiCells.clear();
+  selectedCell = null;
+  renderDetailPanel();
+}
+
+// ═══════════════════════════════════
+//  TEMPLATE MODAL
+// ═══════════════════════════════════
+function openTemplateModal() {
+  let gridHtml = `<table class="template-table"><thead><tr><th class="period-th">교시 \\ 요일</th>`;
+  DAY_NAMES.forEach(d => { gridHtml += `<th>${d}</th>`; });
+  gridHtml += `</tr></thead><tbody>`;
+  PERIODS.forEach((label, pIdx) => {
+    gridHtml += `<tr><th class="period-th">${label}</th>`;
+    DAY_NAMES.forEach((_, dayIdx) => {
+      const val = (templateData[pIdx] && templateData[pIdx][dayIdx]) || '';
+      gridHtml += `<td><input class="template-input" type="text" id="ti-${pIdx}-${dayIdx}" value="${escHtml(val)}" maxlength="30" placeholder="예: 202"></td>`;
+    });
+    gridHtml += `</tr>`;
+  });
+  gridHtml += `</tbody></table>`;
+  document.getElementById('templateGridWrap').innerHTML = gridHtml;
+
+  const fromSel = document.getElementById('tmpl-from');
+  const toSel   = document.getElementById('tmpl-to');
+  fromSel.innerHTML = toSel.innerHTML = '';
+  WEEKS.forEach((w, i) => {
+    fromSel.innerHTML += `<option value="${i}">${w.label}</option>`;
+    toSel.innerHTML   += `<option value="${i}">${w.label}</option>`;
+  });
+  toSel.value = String(WEEKS.length - 1);
+  document.getElementById('templateModal').style.display = 'flex';
+}
+
+function closeTemplateModal() { document.getElementById('templateModal').style.display = 'none'; }
+function onOverlayClick(e)    { if (e.target.id === 'templateModal') closeTemplateModal(); }
+
+function readTemplateFromInputs() {
+  return PERIODS.map((_, pIdx) =>
+    DAY_NAMES.map((__, dayIdx) => {
+      const el = document.getElementById(`ti-${pIdx}-${dayIdx}`);
+      return el ? el.value.trim() : '';
+    })
+  );
+}
+
+function saveTemplateOnly() {
+  templateData = readTemplateFromInputs();
+  persistTemplate();
+  showToast('기본 시간표를 저장했습니다.');
+}
+
+function applyTemplate() {
+  templateData = readTemplateFromInputs();
+  persistTemplate();
+
+  const fromIdx   = +document.getElementById('tmpl-from').value;
+  const toIdx     = +document.getElementById('tmpl-to').value;
+  const overwrite = document.querySelector('input[name="overwrite"]:checked').value === 'all';
+
+  if (fromIdx > toIdx) { showToast('적용 범위가 올바르지 않습니다.'); return; }
+
+  let count = 0;
+  for (let wi = fromIdx; wi <= toIdx; wi++) {
+    WEEKS[wi].dates.forEach((date, dayIdx) => {
+      PERIODS.forEach((_, pIdx) => {
+        const tmplContent = templateData[pIdx][dayIdx];
+        if (!tmplContent) return;
+        const existing = readCell(date, pIdx);
+        if (existing && !overwrite) return;
+        writeCell(date, pIdx, {
+          content: tmplContent,
+          color:   existing ? existing.color : '#FFFFFF',
+          note:    existing ? existing.note  : '',
+        });
+        count++;
+      });
+    });
+  }
+  renderTimetable();
+  closeTemplateModal();
+  showToast(`${count}개 셀에 기본 시간표를 적용했습니다!`);
+}
+
+// ═══════════════════════════════════
+//  KEYBOARD SHORTCUTS
+// ═══════════════════════════════════
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    if (document.getElementById('templateModal').style.display !== 'none') {
+      closeTemplateModal(); return;
+    }
+    if (selectedDay)          { cancelDaySelect();   return; }
+    if (multiCells.size > 0)  { cancelMultiSelect(); return; }
+    if (selectedCell) {
+      document.querySelector(`[data-date="${selectedCell.date}"][data-p="${selectedCell.pIdx}"]`)?.classList.remove('selected');
+      selectedCell = null;
+      renderDetailPanel();
+    }
+  }
+  if ((e.key === 'Delete' || e.key === 'Backspace') && multiCells.size > 0) {
+    const active = document.activeElement;
+    if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) return;
+    clearMultiCells();
+  }
+});
+
+// ═══════════════════════════════════
+//  UTILITY
+// ═══════════════════════════════════
+let toastTimer = null;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+// ═══════════════════════════════════
+//  INIT
+// ═══════════════════════════════════
+function init() {
+  loadData();
+  loadTemplate();
+  renderTimetable();
+  renderDetailPanel();
+}
+init();
+</script>
+</body>
+</html>
