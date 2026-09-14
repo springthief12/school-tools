@@ -1,0 +1,1156 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>교무실 물품 구매 내역</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+      background: #eef2f7;
+      color: #1a2e4a;
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    .header {
+      background: linear-gradient(135deg, #1b3a6b, #2d5a9e);
+      color: white;
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      box-shadow: 0 3px 12px rgba(0,0,0,0.22);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .header-title { font-size: 17px; font-weight: 700; flex: 1; }
+    .header-sub { font-size: 11px; opacity: 0.65; margin-top: 2px; }
+    .header-actions { display: flex; gap: 7px; align-items: center; flex-wrap: wrap; }
+
+    /* ── Buttons ── */
+    .btn {
+      padding: 7px 13px;
+      border: none;
+      border-radius: 7px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 700;
+      transition: filter 0.14s, transform 0.1s, box-shadow 0.14s;
+      line-height: 1.4;
+    }
+    .btn:active { transform: translateY(1px); }
+    .btn-primary { background: #3b82f6; color: white; box-shadow: 0 2px 6px rgba(59,130,246,0.35); }
+    .btn-primary:hover { filter: brightness(1.1); }
+    .btn-ghost {
+      background: rgba(255,255,255,0.13);
+      color: white;
+      border: 1px solid rgba(255,255,255,0.28);
+    }
+    .btn-ghost:hover { background: rgba(255,255,255,0.22); }
+    .btn-light { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
+    .btn-light:hover { background: #e2e8f0; }
+    .btn-danger-light { background: #fef2f2; color: #ef4444; border: 1px solid #fecaca; }
+    .btn-sm { padding: 4px 9px; font-size: 12px; }
+
+    /* ── Layout ── */
+    .container { max-width: 1280px; margin: 0 auto; padding: 20px 20px 40px; }
+
+    /* ── Summary cards ── */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: 13px;
+      margin-bottom: 18px;
+    }
+    .stat-card {
+      background: white;
+      border-radius: 13px;
+      padding: 17px 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    .stat-label { font-size: 11px; color: #64748b; margin-bottom: 5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; }
+    .stat-value { font-size: 21px; font-weight: 800; color: #1b3a6b; }
+    .stat-sub { font-size: 11px; color: #94a3b8; margin-top: 3px; }
+
+    /* ── Category bars ── */
+    .panel {
+      background: white;
+      border-radius: 13px;
+      padding: 17px 20px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    .panel-title { font-size: 12px; color: #64748b; font-weight: 700; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.3px; }
+    .cat-row { margin-bottom: 9px; }
+    .cat-row-head { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px; color: #475569; }
+    .cat-track { background: #e9eef5; border-radius: 5px; height: 7px; overflow: hidden; }
+    .cat-fill { height: 100%; border-radius: 5px; transition: width 0.5s cubic-bezier(0.4,0,0.2,1); }
+
+    /* ── Toolbar ── */
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+    .view-toggle { display: flex; border: 1px solid #e2e8f0; border-radius: 7px; overflow: hidden; }
+    .view-btn { padding: 6px 13px; border: none; background: white; cursor: pointer; font-size: 13px; color: #64748b; font-weight: 600; }
+    .view-btn.active { background: #3b82f6; color: white; }
+    .result-count { font-size: 12px; color: #94a3b8; margin-left: 2px; }
+
+    /* ── Filter bar ── */
+    .filter-bar {
+      background: white;
+      border-radius: 13px;
+      padding: 13px 17px;
+      margin-bottom: 14px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    .filter-bar input,
+    .filter-bar select {
+      padding: 7px 11px;
+      border: 1px solid #e2e8f0;
+      border-radius: 7px;
+      font-size: 13px;
+      color: #1a2e4a;
+      background: #f8fafc;
+    }
+    .filter-bar input:focus,
+    .filter-bar select:focus { outline: none; border-color: #3b82f6; background: white; }
+
+    /* ── Table ── */
+    .table-wrap {
+      background: white;
+      border-radius: 13px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      overflow-x: auto;
+    }
+    table { width: 100%; border-collapse: collapse; min-width: 700px; }
+    th {
+      background: #f8fafc;
+      padding: 10px 13px;
+      text-align: left;
+      font-size: 11px;
+      color: #64748b;
+      font-weight: 700;
+      border-bottom: 1px solid #e9eef5;
+      white-space: nowrap;
+      cursor: pointer;
+      user-select: none;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    th:hover { background: #f0f5fc; }
+    th.no-sort { cursor: default; }
+    th.no-sort:hover { background: #f8fafc; }
+    td {
+      padding: 10px 13px;
+      font-size: 13px;
+      border-bottom: 1px solid #f0f4f8;
+      vertical-align: middle;
+    }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover td { background: #f8fafc; }
+    tfoot td { background: #f0f5fc; font-weight: 700; border-top: 2px solid #e2e8f0; }
+
+    /* ── Thumbnails ── */
+    .thumb-list { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
+    .thumb {
+      width: 38px; height: 38px;
+      border-radius: 5px;
+      object-fit: cover;
+      cursor: pointer;
+      border: 1.5px solid #e2e8f0;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .thumb:hover { transform: scale(1.15); box-shadow: 0 3px 8px rgba(0,0,0,0.18); }
+
+    /* ── Badge ── */
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 99px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    /* ── Grid cards ── */
+    .grid-view {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 14px;
+    }
+    .grid-card {
+      background: white;
+      border-radius: 13px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      transition: box-shadow 0.2s, transform 0.2s;
+    }
+    .grid-card:hover { box-shadow: 0 6px 20px rgba(0,0,0,0.1); transform: translateY(-2px); }
+    .grid-card-img { width: 100%; height: 155px; object-fit: cover; cursor: pointer; display: block; }
+    .grid-card-no-img {
+      width: 100%; height: 155px;
+      background: linear-gradient(135deg, #dbe8f5, #eef2f7);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 36px; color: #94a3b8;
+    }
+    .grid-card-body { padding: 13px 15px 14px; }
+    .grid-card-top { display: flex; align-items: center; gap: 6px; margin-bottom: 7px; }
+    .grid-card-name { font-weight: 700; font-size: 14px; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .grid-card-meta { font-size: 12px; color: #64748b; margin-bottom: 2px; }
+    .grid-card-price { font-size: 17px; font-weight: 800; color: #1b3a6b; margin-top: 8px; }
+    .grid-card-actions { display: flex; gap: 6px; margin-top: 10px; }
+
+    /* ── Modal ── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(15,30,55,0.55);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: white;
+      border-radius: 18px;
+      width: 100%;
+      max-width: 540px;
+      max-height: 92vh;
+      overflow-y: auto;
+      padding: 26px 28px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    .modal-title { font-size: 17px; font-weight: 800; margin-bottom: 20px; color: #1b3a6b; }
+    .form-group { margin-bottom: 14px; }
+    .form-label { display: block; font-size: 12px; font-weight: 700; color: #475569; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.3px; }
+    .form-control {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 13px;
+      color: #1a2e4a;
+      transition: border-color 0.14s, box-shadow 0.14s;
+      background: #f9fafb;
+      font-family: inherit;
+    }
+    .form-control:focus { outline: none; border-color: #3b82f6; background: white; box-shadow: 0 0 0 3px rgba(59,130,246,0.12); }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .total-display { font-size: 20px; font-weight: 800; color: #1b3a6b; padding: 6px 0; }
+
+    /* ── Photo upload ── */
+    .photo-drop-area {
+      border: 2px dashed #cbd5e1;
+      border-radius: 9px;
+      padding: 18px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+      color: #94a3b8;
+      font-size: 13px;
+    }
+    .photo-drop-area:hover, .photo-drop-area.dragover {
+      border-color: #3b82f6;
+      background: #eff6ff;
+      color: #3b82f6;
+    }
+    .photo-previews { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+    .photo-preview-item { position: relative; width: 70px; height: 70px; }
+    .photo-preview-item img { width: 70px; height: 70px; border-radius: 7px; object-fit: cover; border: 1.5px solid #e2e8f0; }
+    .photo-remove {
+      position: absolute; top: -6px; right: -6px;
+      background: #ef4444; color: white;
+      border: none; border-radius: 50%;
+      width: 19px; height: 19px; font-size: 11px;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+    }
+
+    /* ── Lightbox ── */
+    .lightbox {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(5,10,20,0.93);
+      z-index: 300;
+      align-items: center;
+      justify-content: center;
+    }
+    .lightbox.open { display: flex; }
+    .lightbox-img { max-width: 88vw; max-height: 82vh; border-radius: 8px; object-fit: contain; }
+    .lb-close {
+      position: absolute; top: 18px; right: 22px;
+      background: none; border: none; color: white; font-size: 26px;
+      cursor: pointer; opacity: 0.7; line-height: 1;
+    }
+    .lb-close:hover { opacity: 1; }
+    .lb-nav {
+      position: absolute; top: 50%; transform: translateY(-50%);
+      background: rgba(255,255,255,0.12); border: none; color: white;
+      font-size: 26px; width: 48px; height: 48px; border-radius: 50%;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+    }
+    .lb-nav:hover { background: rgba(255,255,255,0.25); }
+    .lb-prev { left: 18px; }
+    .lb-next { right: 18px; }
+    .lb-counter { position: absolute; bottom: 18px; color: rgba(255,255,255,0.6); font-size: 12px; }
+    .lb-info { position: absolute; top: 18px; left: 22px; color: rgba(255,255,255,0.7); font-size: 13px; max-width: 60%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* ── Modal footer ── */
+    .modal-footer { display: flex; gap: 9px; justify-content: flex-end; margin-top: 22px; padding-top: 16px; border-top: 1px solid #f0f4f8; }
+
+    /* ── Empty state ── */
+    .empty-state { text-align: center; padding: 55px 20px; color: #94a3b8; }
+    .empty-state-icon { font-size: 44px; margin-bottom: 14px; }
+    .empty-state-text { font-size: 15px; margin-bottom: 6px; color: #64748b; }
+    .empty-state-sub { font-size: 13px; margin-bottom: 20px; }
+
+    /* ── Sort indicators ── */
+    .sort-asc::after { content: ' ↑'; color: #3b82f6; }
+    .sort-desc::after { content: ' ↓'; color: #3b82f6; }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+
+    /* ── Print ── */
+    @media print {
+      .header-actions > *:not(.print-show),
+      .toolbar .btn, .toolbar .view-toggle,
+      .filter-bar .btn,
+      .modal-overlay, .lightbox,
+      th.no-print, td.no-print { display: none !important; }
+      body { background: white; }
+      .stat-card, .panel, .table-wrap { box-shadow: none; border: 1px solid #e2e8f0; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Header ── -->
+<div class="header">
+  <div>
+    <div class="header-title">📋 교무실 물품 구매 내역</div>
+    <div class="header-sub" id="headerYear">관리 시스템</div>
+  </div>
+  <div class="header-actions">
+    <button class="btn btn-ghost" onclick="triggerImport()">📥 가져오기</button>
+    <input type="file" id="importInput" accept=".json" style="display:none" onchange="importData(event)">
+    <button class="btn btn-ghost" onclick="exportJSON()">📤 JSON 내보내기</button>
+    <button class="btn btn-ghost" onclick="exportCSV()">📊 CSV 내보내기</button>
+    <button class="btn btn-ghost" onclick="window.print()">🖨️ 인쇄</button>
+    <button class="btn btn-primary" onclick="openAddModal()">+ 항목 추가</button>
+  </div>
+</div>
+
+<!-- ── Content ── -->
+<div class="container">
+
+  <!-- Summary -->
+  <div class="summary-grid" id="summaryGrid"></div>
+
+  <!-- Category breakdown -->
+  <div class="panel" id="categoryPanel" style="display:none">
+    <div class="panel-title">카테고리별 지출</div>
+    <div id="categoryBars"></div>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <div class="view-toggle">
+      <button class="view-btn active" id="btnTable" onclick="setView('table')">☰ 목록</button>
+      <button class="view-btn" id="btnGrid" onclick="setView('grid')">⊞ 카드</button>
+    </div>
+    <span class="result-count" id="resultCount"></span>
+  </div>
+
+  <!-- Filter bar -->
+  <div class="filter-bar">
+    <input type="text" id="fSearch" placeholder="🔍 항목명 / 메모 검색..." oninput="renderAll()" style="flex:1;min-width:150px;">
+    <select id="fCat" onchange="renderAll()">
+      <option value="">전체 카테고리</option>
+      <option>사무용품</option>
+      <option>청소용품</option>
+      <option>비품</option>
+      <option>식음료</option>
+      <option>기타</option>
+    </select>
+    <input type="date" id="fFrom" onchange="renderAll()">
+    <span style="font-size:12px;color:#94a3b8;flex-shrink:0">~</span>
+    <input type="date" id="fTo" onchange="renderAll()">
+    <button class="btn btn-light" onclick="clearFilters()">초기화</button>
+  </div>
+
+  <!-- Items -->
+  <div id="itemsArea"></div>
+
+</div>
+
+<!-- ── Add/Edit Modal ── -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal">
+    <div class="modal-title" id="modalTitle">새 항목 추가</div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">구매 날짜 *</label>
+        <input type="date" class="form-control" id="mDate">
+      </div>
+      <div class="form-group">
+        <label class="form-label">카테고리</label>
+        <select class="form-control" id="mCat">
+          <option value="">선택...</option>
+          <option>사무용품</option>
+          <option>청소용품</option>
+          <option>비품</option>
+          <option>식음료</option>
+          <option>기타</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">항목명 *</label>
+      <input type="text" class="form-control" id="mName" placeholder="예: A4 용지 500매">
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">수량</label>
+        <input type="number" class="form-control" id="mQty" value="1" min="1" oninput="calcTotal()">
+      </div>
+      <div class="form-group">
+        <label class="form-label">단가 (원) *</label>
+        <input type="number" class="form-control" id="mUnit" placeholder="0" min="0" oninput="calcTotal()">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">합계 금액</label>
+      <div class="total-display" id="mTotal">0원</div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">구매처</label>
+      <input type="text" class="form-control" id="mStore" placeholder="예: 쿠팡, 다이소, 문구점...">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">메모</label>
+      <textarea class="form-control" id="mMemo" rows="2" placeholder="용도, 담당자 등 추가 메모..."></textarea>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">사진 첨부</label>
+      <div class="photo-drop-area" id="photoDropArea" onclick="document.getElementById('photoInput').click()">
+        📷 클릭하거나 사진을 드래그하세요<br>
+        <span style="font-size:11px;opacity:0.7">(여러 장 가능 · 자동 압축)</span>
+      </div>
+      <input type="file" id="photoInput" accept="image/*" multiple style="display:none" onchange="handlePhotoInput(event)">
+      <div class="photo-previews" id="photoPreviews"></div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-light" onclick="closeModal()">취소</button>
+      <button class="btn btn-primary" onclick="saveItem()" style="padding:8px 22px">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Lightbox ── -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <div class="lb-info" id="lbInfo"></div>
+  <button class="lb-close" onclick="closeLightbox()">✕</button>
+  <button class="lb-nav lb-prev" onclick="event.stopPropagation();moveLb(-1)">‹</button>
+  <img class="lightbox-img" id="lbImg" src="" alt="">
+  <button class="lb-nav lb-next" onclick="event.stopPropagation();moveLb(1)">›</button>
+  <div class="lb-counter" id="lbCounter"></div>
+</div>
+
+<script>
+// ──────────────────────────────────────────────
+//  Constants
+// ──────────────────────────────────────────────
+const STORAGE_KEY = 'office_purchases_v1';
+const CAT_COLORS = {
+  '사무용품': '#3b82f6',
+  '청소용품': '#22c55e',
+  '비품':    '#f59e0b',
+  '식음료':  '#ec4899',
+  '기타':    '#8b5cf6',
+};
+const CAT_DEFAULT = '#8b5cf6';
+
+// ──────────────────────────────────────────────
+//  State (immutable-style: always reassign)
+// ──────────────────────────────────────────────
+let purchases = [];
+let editingId = null;
+let pendingPhotos = [];
+let currentView = 'table';
+let sortKey = 'date';
+let sortDir = 'desc';
+let lbPhotos = [];
+let lbIndex = 0;
+let lbItemName = '';
+
+// ──────────────────────────────────────────────
+//  Persistence
+// ──────────────────────────────────────────────
+function loadData() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    purchases = raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    purchases = [];
+    console.error('데이터 로드 실패:', e);
+  }
+}
+
+function saveData() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(purchases));
+  } catch (e) {
+    if (e.name === 'QuotaExceededError') {
+      alert('저장 공간이 부족합니다. 사진 수를 줄이거나 오래된 항목을 삭제해주세요.\n(현재 사진은 저장되지 않았습니다.)');
+    } else {
+      console.error('저장 실패:', e);
+    }
+  }
+}
+
+// ──────────────────────────────────────────────
+//  Utilities
+// ──────────────────────────────────────────────
+function uid() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2);
+}
+
+function fWon(n) {
+  return Number(n).toLocaleString('ko-KR') + '원';
+}
+
+function fDate(d) {
+  return d ? d.replace(/-/g, '.') : '';
+}
+
+function esc(s) {
+  return String(s ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function today() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+// ──────────────────────────────────────────────
+//  Image compression
+// ──────────────────────────────────────────────
+function compressImage(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onerror = reject;
+      img.onload = () => {
+        const MAX = 1024;
+        let w = img.width, h = img.height;
+        if (w > MAX || h > MAX) {
+          if (w >= h) { h = Math.round(h * MAX / w); w = MAX; }
+          else { w = Math.round(w * MAX / h); h = MAX; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', 0.80));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+// ──────────────────────────────────────────────
+//  Filter & sort
+// ──────────────────────────────────────────────
+function getFiltered() {
+  const search = document.getElementById('fSearch').value.trim().toLowerCase();
+  const cat = document.getElementById('fCat').value;
+  const from = document.getElementById('fFrom').value;
+  const to = document.getElementById('fTo').value;
+
+  const filtered = purchases.filter(p => {
+    if (search) {
+      const hay = ((p.name || '') + ' ' + (p.memo || '') + ' ' + (p.store || '')).toLowerCase();
+      if (!hay.includes(search)) return false;
+    }
+    if (cat && p.category !== cat) return false;
+    if (from && p.date < from) return false;
+    if (to && p.date > to) return false;
+    return true;
+  });
+
+  filtered.sort((a, b) => {
+    let va = sortKey === 'total' ? Number(a.total) : (a[sortKey] ?? '');
+    let vb = sortKey === 'total' ? Number(b.total) : (b[sortKey] ?? '');
+    if (va < vb) return sortDir === 'asc' ? -1 : 1;
+    if (va > vb) return sortDir === 'asc' ? 1 : -1;
+    return 0;
+  });
+
+  return filtered;
+}
+
+function clearFilters() {
+  document.getElementById('fSearch').value = '';
+  document.getElementById('fCat').value = '';
+  document.getElementById('fFrom').value = '';
+  document.getElementById('fTo').value = '';
+  renderAll();
+}
+
+function setSort(key) {
+  if (sortKey === key) {
+    sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+  } else {
+    sortKey = key;
+    sortDir = 'desc';
+  }
+  renderAll();
+}
+
+// ──────────────────────────────────────────────
+//  Summary
+// ──────────────────────────────────────────────
+function renderSummary() {
+  const total = purchases.reduce((s, p) => s + Number(p.total), 0);
+  const nowStr = today();
+  const ym = nowStr.slice(0, 7);
+  const monthTotal = purchases
+    .filter(p => p.date && p.date.startsWith(ym))
+    .reduce((s, p) => s + Number(p.total), 0);
+  const photoCount = purchases.filter(p => p.photos && p.photos.length > 0).length;
+  const now = new Date();
+
+  document.getElementById('summaryGrid').innerHTML = `
+    <div class="stat-card">
+      <div class="stat-label">📦 총 구매 건수</div>
+      <div class="stat-value">${purchases.length}건</div>
+      <div class="stat-sub">전체 기간</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">💰 총 지출 금액</div>
+      <div class="stat-value">${fWon(total)}</div>
+      <div class="stat-sub">전체 기간</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">📅 이번 달 지출</div>
+      <div class="stat-value">${fWon(monthTotal)}</div>
+      <div class="stat-sub">${now.getFullYear()}년 ${now.getMonth() + 1}월</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">📷 사진 첨부 항목</div>
+      <div class="stat-value">${photoCount}건</div>
+      <div class="stat-sub">전체 ${purchases.length}건 중</div>
+    </div>
+  `;
+
+  // Category bar chart
+  const catMap = {};
+  purchases.forEach(p => {
+    const c = p.category || '기타';
+    catMap[c] = (catMap[c] || 0) + Number(p.total);
+  });
+
+  const sortedCats = Object.entries(catMap).sort((a, b) => b[1] - a[1]);
+
+  if (sortedCats.length === 0) {
+    document.getElementById('categoryPanel').style.display = 'none';
+    return;
+  }
+
+  document.getElementById('categoryPanel').style.display = '';
+  const maxAmt = sortedCats[0][1];
+
+  document.getElementById('categoryBars').innerHTML = sortedCats.map(([cat, amt]) => {
+    const color = CAT_COLORS[cat] || CAT_DEFAULT;
+    const pct = maxAmt > 0 ? ((amt / maxAmt) * 100).toFixed(1) : 0;
+    return `
+      <div class="cat-row">
+        <div class="cat-row-head">
+          <span>
+            <span class="badge" style="background:${color}22;color:${color}">${esc(cat)}</span>
+          </span>
+          <span style="font-weight:700;color:#1b3a6b">${fWon(amt)}</span>
+        </div>
+        <div class="cat-track">
+          <div class="cat-fill" style="width:${pct}%;background:${color}"></div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// ──────────────────────────────────────────────
+//  Render
+// ──────────────────────────────────────────────
+function renderAll() {
+  renderSummary();
+  const filtered = getFiltered();
+  document.getElementById('resultCount').textContent = `${filtered.length}건 표시 중`;
+
+  if (purchases.length === 0) {
+    document.getElementById('itemsArea').innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state-icon">📋</div>
+        <div class="empty-state-text">아직 등록된 항목이 없습니다</div>
+        <div class="empty-state-sub">+ 항목 추가 버튼을 눌러 첫 구매 내역을 입력해보세요</div>
+        <button class="btn btn-primary" onclick="openAddModal()">+ 첫 항목 추가하기</button>
+      </div>`;
+    return;
+  }
+
+  if (filtered.length === 0) {
+    document.getElementById('itemsArea').innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state-icon">🔍</div>
+        <div class="empty-state-text">검색 결과가 없습니다</div>
+        <button class="btn btn-light" onclick="clearFilters()" style="margin-top:12px">필터 초기화</button>
+      </div>`;
+    return;
+  }
+
+  if (currentView === 'table') renderTable(filtered);
+  else renderGrid(filtered);
+}
+
+function sortThClass(key) {
+  if (sortKey !== key) return '';
+  return sortDir === 'asc' ? 'sort-asc' : 'sort-desc';
+}
+
+function renderTable(filtered) {
+  const rows = filtered.map(p => {
+    const color = CAT_COLORS[p.category] || CAT_DEFAULT;
+    const thumbs = (p.photos || []).slice(0, 3).map((src, i) =>
+      `<img class="thumb" src="${src}" onclick="openLb('${p.id}',${i})" title="사진 보기">`
+    ).join('');
+    const extra = (p.photos || []).length > 3
+      ? `<span style="font-size:11px;color:#94a3b8;white-space:nowrap">+${p.photos.length - 3}</span>`
+      : '';
+
+    return `<tr>
+      <td>${esc(fDate(p.date))}</td>
+      <td><span class="badge" style="background:${color}22;color:${color}">${esc(p.category || '기타')}</span></td>
+      <td style="font-weight:600;max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(p.name)}</td>
+      <td style="text-align:right;color:#475569">${Number(p.qty) || 1}개</td>
+      <td style="text-align:right;color:#475569">${fWon(p.unitPrice || p.total)}</td>
+      <td style="text-align:right;font-weight:700;color:#1b3a6b">${fWon(p.total)}</td>
+      <td style="color:#64748b;font-size:12px;max-width:140px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(p.store || '')}</td>
+      <td style="color:#64748b;font-size:12px;max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(p.memo || '')}</td>
+      <td class="no-print"><div class="thumb-list">${thumbs}${extra}</div></td>
+      <td class="no-print">
+        <div style="display:flex;gap:4px">
+          <button class="btn btn-light btn-sm" onclick="editItem('${p.id}')">✏️</button>
+          <button class="btn btn-danger-light btn-sm" onclick="deleteItem('${p.id}')">🗑️</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  const filterTotal = filtered.reduce((s, p) => s + Number(p.total), 0);
+
+  document.getElementById('itemsArea').innerHTML = `
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th class="${sortThClass('date')}" onclick="setSort('date')">날짜</th>
+            <th class="${sortThClass('category')}" onclick="setSort('category')">카테고리</th>
+            <th class="${sortThClass('name')}" onclick="setSort('name')">항목명</th>
+            <th class="no-sort" style="text-align:right">수량</th>
+            <th class="no-sort" style="text-align:right">단가</th>
+            <th class="${sortThClass('total')}" onclick="setSort('total')" style="text-align:right">합계</th>
+            <th class="no-sort">구매처</th>
+            <th class="no-sort">메모</th>
+            <th class="no-sort no-print">사진</th>
+            <th class="no-sort no-print">관리</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+        <tfoot>
+          <tr>
+            <td colspan="5" style="text-align:right;font-size:12px;color:#64748b">
+              필터된 합계 (${filtered.length}건)
+            </td>
+            <td style="text-align:right;font-size:15px;color:#1b3a6b">${fWon(filterTotal)}</td>
+            <td colspan="4"></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>`;
+}
+
+function renderGrid(filtered) {
+  const cards = filtered.map(p => {
+    const color = CAT_COLORS[p.category] || CAT_DEFAULT;
+    const cover = p.photos && p.photos.length > 0 ? p.photos[0] : null;
+    const imgEl = cover
+      ? `<img class="grid-card-img" src="${cover}" onclick="openLb('${p.id}',0)" alt="사진">`
+      : `<div class="grid-card-no-img">📦</div>`;
+    const photoCount = (p.photos || []).length;
+
+    return `
+      <div class="grid-card">
+        ${imgEl}
+        <div class="grid-card-body">
+          <div class="grid-card-top">
+            <span class="badge" style="background:${color}22;color:${color}">${esc(p.category || '기타')}</span>
+            ${photoCount > 1 ? `<span style="font-size:11px;color:#94a3b8">📷 ${photoCount}장</span>` : ''}
+          </div>
+          <div class="grid-card-name" title="${esc(p.name)}">${esc(p.name)}</div>
+          <div class="grid-card-meta">📅 ${esc(fDate(p.date))} · ${Number(p.qty) || 1}개</div>
+          ${p.store ? `<div class="grid-card-meta">🏪 ${esc(p.store)}</div>` : ''}
+          ${p.memo ? `<div class="grid-card-meta">📝 ${esc(p.memo)}</div>` : ''}
+          <div class="grid-card-price">${fWon(p.total)}</div>
+          <div class="grid-card-actions">
+            <button class="btn btn-light btn-sm" onclick="editItem('${p.id}')" style="flex:1">✏️ 수정</button>
+            <button class="btn btn-danger-light btn-sm" onclick="deleteItem('${p.id}')" style="flex:1">🗑️ 삭제</button>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+
+  document.getElementById('itemsArea').innerHTML = `<div class="grid-view">${cards}</div>`;
+}
+
+// ──────────────────────────────────────────────
+//  View toggle
+// ──────────────────────────────────────────────
+function setView(v) {
+  currentView = v;
+  document.getElementById('btnTable').classList.toggle('active', v === 'table');
+  document.getElementById('btnGrid').classList.toggle('active', v === 'grid');
+  renderAll();
+}
+
+// ──────────────────────────────────────────────
+//  Lightbox
+// ──────────────────────────────────────────────
+function openLb(id, startIndex) {
+  const item = purchases.find(p => p.id === id);
+  if (!item || !item.photos || item.photos.length === 0) return;
+  lbPhotos = item.photos;
+  lbIndex = startIndex;
+  lbItemName = item.name || '';
+  showLbPhoto();
+  document.getElementById('lightbox').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function showLbPhoto() {
+  document.getElementById('lbImg').src = lbPhotos[lbIndex];
+  document.getElementById('lbCounter').textContent = lbPhotos.length > 1
+    ? `${lbIndex + 1} / ${lbPhotos.length}`
+    : '';
+  document.getElementById('lbInfo').textContent = lbItemName;
+  const hasMult = lbPhotos.length > 1;
+  document.querySelector('.lb-prev').style.display = hasMult ? '' : 'none';
+  document.querySelector('.lb-next').style.display = hasMult ? '' : 'none';
+}
+
+function moveLb(dir) {
+  lbIndex = (lbIndex + dir + lbPhotos.length) % lbPhotos.length;
+  showLbPhoto();
+}
+
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('open');
+  document.body.style.overflow = '';
+  lbPhotos = [];
+}
+
+// ──────────────────────────────────────────────
+//  Modal
+// ──────────────────────────────────────────────
+function openAddModal() {
+  editingId = null;
+  pendingPhotos = [];
+  document.getElementById('modalTitle').textContent = '새 항목 추가';
+  document.getElementById('mDate').value = today();
+  document.getElementById('mCat').value = '';
+  document.getElementById('mName').value = '';
+  document.getElementById('mQty').value = 1;
+  document.getElementById('mUnit').value = '';
+  document.getElementById('mStore').value = '';
+  document.getElementById('mMemo').value = '';
+  document.getElementById('mTotal').textContent = '0원';
+  renderPreviews();
+  document.getElementById('editModal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  setTimeout(() => document.getElementById('mName').focus(), 80);
+}
+
+function editItem(id) {
+  const item = purchases.find(p => p.id === id);
+  if (!item) return;
+  editingId = id;
+  pendingPhotos = [...(item.photos || [])];
+  document.getElementById('modalTitle').textContent = '항목 수정';
+  document.getElementById('mDate').value = item.date || today();
+  document.getElementById('mCat').value = item.category || '';
+  document.getElementById('mName').value = item.name || '';
+  document.getElementById('mQty').value = item.qty ?? 1;
+  document.getElementById('mUnit').value = item.unitPrice ?? item.total ?? '';
+  document.getElementById('mStore').value = item.store || '';
+  document.getElementById('mMemo').value = item.memo || '';
+  calcTotal();
+  renderPreviews();
+  document.getElementById('editModal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal() {
+  document.getElementById('editModal').classList.remove('open');
+  document.body.style.overflow = '';
+  editingId = null;
+  pendingPhotos = [];
+}
+
+function calcTotal() {
+  const qty = Math.max(1, Number(document.getElementById('mQty').value) || 1);
+  const unit = Number(document.getElementById('mUnit').value) || 0;
+  document.getElementById('mTotal').textContent = fWon(qty * unit);
+}
+
+function saveItem() {
+  const date = document.getElementById('mDate').value.trim();
+  const category = document.getElementById('mCat').value;
+  const name = document.getElementById('mName').value.trim();
+  const qty = Math.max(1, Number(document.getElementById('mQty').value) || 1);
+  const unitPrice = Number(document.getElementById('mUnit').value) || 0;
+  const store = document.getElementById('mStore').value.trim();
+  const memo = document.getElementById('mMemo').value.trim();
+
+  if (!date) { alert('날짜를 입력해주세요.'); return; }
+  if (!name) { alert('항목명을 입력해주세요.'); return; }
+  if (unitPrice <= 0) { alert('단가를 입력해주세요.'); return; }
+
+  const total = qty * unitPrice;
+  const photos = [...pendingPhotos];
+
+  if (editingId) {
+    purchases = purchases.map(p =>
+      p.id === editingId
+        ? { ...p, date, category, name, qty, unitPrice, total, store, memo, photos, updatedAt: Date.now() }
+        : p
+    );
+  } else {
+    purchases = [
+      ...purchases,
+      { id: uid(), date, category, name, qty, unitPrice, total, store, memo, photos, createdAt: Date.now() }
+    ];
+  }
+
+  saveData();
+  closeModal();
+  renderAll();
+}
+
+function deleteItem(id) {
+  const item = purchases.find(p => p.id === id);
+  if (!item) return;
+  if (!confirm(`"${item.name}" 항목을 삭제하시겠습니까?`)) return;
+  purchases = purchases.filter(p => p.id !== id);
+  saveData();
+  renderAll();
+}
+
+// ──────────────────────────────────────────────
+//  Photo handling
+// ──────────────────────────────────────────────
+async function handlePhotoInput(event) {
+  const files = Array.from(event.target.files);
+  event.target.value = '';
+  for (const file of files) {
+    try {
+      const compressed = await compressImage(file);
+      pendingPhotos = [...pendingPhotos, compressed];
+    } catch (e) {
+      console.error('이미지 처리 실패:', e);
+    }
+  }
+  renderPreviews();
+}
+
+function removePhoto(index) {
+  pendingPhotos = pendingPhotos.filter((_, i) => i !== index);
+  renderPreviews();
+}
+
+function renderPreviews() {
+  document.getElementById('photoPreviews').innerHTML = pendingPhotos.map((src, i) => `
+    <div class="photo-preview-item">
+      <img src="${src}" alt="사진 ${i + 1}">
+      <button class="photo-remove" onclick="removePhoto(${i})">✕</button>
+    </div>
+  `).join('');
+}
+
+// Drag-and-drop
+const dropArea = document.getElementById('photoDropArea');
+dropArea.addEventListener('dragover', e => {
+  e.preventDefault();
+  dropArea.classList.add('dragover');
+});
+dropArea.addEventListener('dragleave', () => dropArea.classList.remove('dragover'));
+dropArea.addEventListener('drop', async e => {
+  e.preventDefault();
+  dropArea.classList.remove('dragover');
+  const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+  for (const file of files) {
+    try {
+      const compressed = await compressImage(file);
+      pendingPhotos = [...pendingPhotos, compressed];
+    } catch (err) {
+      console.error('드래그 이미지 처리 실패:', err);
+    }
+  }
+  renderPreviews();
+});
+
+// ──────────────────────────────────────────────
+//  Export / Import
+// ──────────────────────────────────────────────
+function exportJSON() {
+  const data = {
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    count: purchases.length,
+    purchases
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `교무실_구매내역_${today()}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function exportCSV() {
+  const headers = ['날짜', '카테고리', '항목명', '수량', '단가', '합계', '구매처', '메모'];
+  const rows = purchases.map(p => [
+    p.date || '',
+    p.category || '',
+    p.name || '',
+    p.qty ?? 1,
+    p.unitPrice ?? p.total ?? 0,
+    p.total ?? 0,
+    p.store || '',
+    (p.memo || '').replace(/\n/g, ' ')
+  ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','));
+
+  const csv = '\uFEFF' + [headers.join(','), ...rows].join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `교무실_구매내역_${today()}.csv`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function triggerImport() {
+  document.getElementById('importInput').click();
+}
+
+function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onerror = () => alert('파일을 읽을 수 없습니다.');
+  reader.onload = (e) => {
+    try {
+      const parsed = JSON.parse(e.target.result);
+      const imported = Array.isArray(parsed) ? parsed : (parsed.purchases || []);
+      if (!Array.isArray(imported) || imported.length === 0) {
+        alert('가져올 데이터가 없습니다.');
+        return;
+      }
+
+      if (purchases.length > 0) {
+        const overwrite = confirm(
+          `현재 저장된 ${purchases.length}건의 데이터가 있습니다.\n\n` +
+          `[확인] 모두 덮어쓰기\n[취소] 기존에 없는 항목만 추가 (병합)`
+        );
+        if (overwrite) {
+          purchases = imported;
+        } else {
+          const existIds = new Set(purchases.map(p => p.id));
+          const newItems = imported.filter(p => !existIds.has(p.id));
+          purchases = [...purchases, ...newItems];
+          alert(`${newItems.length}건이 추가되었습니다.`);
+        }
+      } else {
+        purchases = imported;
+        alert(`${imported.length}건을 가져왔습니다.`);
+      }
+
+      saveData();
+      renderAll();
+    } catch (err) {
+      alert('파일 형식이 올바르지 않습니다: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+// ──────────────────────────────────────────────
+//  Keyboard shortcuts
+// ──────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (document.getElementById('lightbox').classList.contains('open')) {
+    if (e.key === 'ArrowLeft')  moveLb(-1);
+    if (e.key === 'ArrowRight') moveLb(1);
+    if (e.key === 'Escape')     closeLightbox();
+    return;
+  }
+  if (document.getElementById('editModal').classList.contains('open')) {
+    if (e.key === 'Escape') closeModal();
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') saveItem();
+    return;
+  }
+});
+
+// Close modal on overlay click
+document.getElementById('editModal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+// ──────────────────────────────────────────────
+//  Init
+// ──────────────────────────────────────────────
+loadData();
+document.getElementById('headerYear').textContent =
+  `${new Date().getFullYear()}학년도 교무실 총무`;
+renderAll();
+</script>
+</body>
+</html>

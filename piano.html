@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>웹 피아노</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #1a1a2e;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      font-family: 'Segoe UI', sans-serif;
+      color: #e0e0e0;
+      user-select: none;
+    }
+
+    h1 {
+      font-size: 1.6rem;
+      margin-bottom: 0.4rem;
+      letter-spacing: 2px;
+      color: #a8d8ea;
+    }
+
+    .subtitle {
+      font-size: 0.8rem;
+      color: #888;
+      margin-bottom: 2rem;
+    }
+
+    .piano-wrapper {
+      background: linear-gradient(145deg, #2c2c3e, #1a1a2e);
+      border-radius: 16px;
+      padding: 30px 40px 40px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.05);
+    }
+
+    .piano {
+      display: flex;
+      position: relative;
+      height: 220px;
+    }
+
+    /* White keys */
+    .key {
+      position: relative;
+      width: 52px;
+      height: 220px;
+      background: linear-gradient(180deg, #f5f5f5 0%, #ffffff 60%, #e8e8e8 100%);
+      border: 1px solid #ccc;
+      border-top: none;
+      border-radius: 0 0 8px 8px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-end;
+      padding-bottom: 10px;
+      gap: 4px;
+      transition: background 0.05s;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.3), inset 0 -2px 4px rgba(0,0,0,0.1);
+      margin-right: 2px;
+    }
+
+    .key:last-child { margin-right: 0; }
+
+    .key.active, .key:active {
+      background: linear-gradient(180deg, #d0e8ff 0%, #b0d4ff 60%, #90c0f0 100%);
+      box-shadow: 0 2px 3px rgba(0,0,0,0.3), inset 0 2px 4px rgba(0,0,80,0.15);
+      transform: translateY(2px);
+    }
+
+    .key .note-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #555;
+    }
+
+    .key .key-label {
+      font-size: 10px;
+      color: #999;
+      background: #eee;
+      border-radius: 3px;
+      padding: 1px 4px;
+    }
+
+    /* Black keys */
+    .key.black {
+      position: absolute;
+      width: 34px;
+      height: 140px;
+      background: linear-gradient(180deg, #333 0%, #111 70%, #222 100%);
+      border: 1px solid #000;
+      border-top: none;
+      border-radius: 0 0 5px 5px;
+      z-index: 2;
+      padding-bottom: 8px;
+      box-shadow: 2px 4px 8px rgba(0,0,0,0.6), inset 0 -2px 3px rgba(255,255,255,0.05);
+    }
+
+    .key.black .note-label { color: #aaa; font-size: 9px; }
+    .key.black .key-label { background: #444; color: #ccc; font-size: 9px; }
+
+    .key.black.active, .key.black:active {
+      background: linear-gradient(180deg, #4a6fa5 0%, #2a4f85 70%, #1a3f75 100%);
+      box-shadow: 1px 2px 4px rgba(0,0,0,0.6), inset 0 2px 3px rgba(0,0,0,0.3);
+      transform: translateY(1px);
+    }
+
+    /* Key position offsets — 14 white keys (C4 to B5) */
+    /* Black key offsets: between C-D, D-E, F-G, G-A, A-B */
+    .black-key-spacer { display: none; }
+
+    .controls {
+      margin-top: 28px;
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .control-btn {
+      padding: 8px 18px;
+      border: 1px solid #555;
+      background: rgba(255,255,255,0.05);
+      color: #ccc;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 13px;
+      transition: all 0.2s;
+    }
+
+    .control-btn:hover { background: rgba(168,216,234,0.15); border-color: #a8d8ea; color: #a8d8ea; }
+    .control-btn.active-btn { background: rgba(168,216,234,0.25); border-color: #a8d8ea; color: #a8d8ea; }
+
+    .wave-selector {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      color: #888;
+      font-size: 13px;
+    }
+
+    .wave-selector select {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid #555;
+      color: #ccc;
+      padding: 6px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    .volume-control {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #888;
+      font-size: 13px;
+    }
+
+    .volume-control input[type=range] {
+      width: 90px;
+      accent-color: #a8d8ea;
+    }
+
+    .octave-display {
+      color: #a8d8ea;
+      font-size: 13px;
+    }
+
+    .key-hint {
+      margin-top: 20px;
+      text-align: center;
+      color: #666;
+      font-size: 11px;
+      line-height: 1.8;
+    }
+
+    .key-hint span { color: #888; }
+  </style>
+</head>
+<body>
+
+<h1>🎹 웹 피아노</h1>
+<p class="subtitle">키보드 또는 마우스로 연주하세요</p>
+
+<div class="piano-wrapper">
+  <div class="piano" id="piano"></div>
+
+  <div class="controls">
+    <div class="wave-selector">
+      음색:
+      <select id="waveType">
+        <option value="piano">🎹 피아노</option>
+        <option value="violin">🎻 바이올린</option>
+        <option value="guitar">🎸 기타</option>
+        <option value="sine">사인파</option>
+        <option value="triangle">삼각파</option>
+        <option value="square">사각파</option>
+        <option value="sawtooth">톱니파</option>
+      </select>
+    </div>
+    <div class="volume-control">
+      볼륨: <input type="range" id="volume" min="0" max="100" value="70">
+    </div>
+    <div class="octave-display">
+      옥타브: <button class="control-btn" id="octDown">−</button>
+      <span id="octaveLabel">4</span>
+      <button class="control-btn" id="octUp">+</button>
+    </div>
+    <button class="control-btn" id="sustainBtn">서스테인 OFF</button>
+  </div>
+
+  <div class="key-hint">
+    <span>흰 건반:</span> Z X C V B N M &nbsp;|&nbsp; Q W E R T Y U &nbsp;&nbsp;
+    <span>검은 건반:</span> S D &nbsp; G H J &nbsp;|&nbsp; 2 3 &nbsp; 5 6 7
+  </div>
+</div>
+
+<script>
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+const masterGain = audioCtx.createGain();
+masterGain.gain.value = 0.7;
+masterGain.connect(audioCtx.destination);
+
+// Reverb (convolver) for piano feel
+const convolver = audioCtx.createConvolver();
+(async () => {
+  const len = audioCtx.sampleRate * 1.5;
+  const buf = audioCtx.createBuffer(2, len, audioCtx.sampleRate);
+  for (let c = 0; c < 2; c++) {
+    const d = buf.getChannelData(c);
+    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3);
+  }
+  convolver.buffer = buf;
+})();
+
+const reverbGain = audioCtx.createGain();
+reverbGain.gain.value = 0.15;
+convolver.connect(reverbGain);
+reverbGain.connect(masterGain);
+
+let octaveOffset = 0;
+let waveType = 'piano';
+let sustainOn = false;
+const activeNodes = {};
+
+// Note definitions for one octave starting at C
+const WHITE_NOTES = ['C','D','E','F','G','A','B'];
+const BLACK_NOTES = { 1: 'C#', 2: 'D#', 4: 'F#', 5: 'G#', 6: 'A#' }; // position after white key index
+
+// Frequencies: MIDI note to Hz
+function midiToHz(midi) {
+  return 440 * Math.pow(2, (midi - 69) / 12);
+}
+
+// Note name to MIDI (C4 = 60)
+const NOTE_MIDI = { C:0, 'C#':1, D:2, 'D#':3, E:4, F:5, 'F#':6, G:7, 'G#':8, A:9, 'A#':10, B:11 };
+
+function noteHz(name, octave) {
+  return midiToHz(12 * (octave + 1) + NOTE_MIDI[name]);
+}
+
+// Keyboard mapping — 2 octaves
+// Lower octave keys: Z(C) S(C#) X(D) D(D#) C(E) V(F) G(F#) B(G) H(G#) N(A) J(A#) M(B)
+// Upper octave keys: Q(C) 2(C#) W(D) 3(D#) E(E) R(F) 5(F#) T(G) 6(G#) Y(A) 7(A#) U(B)
+const KEY_MAP = {
+  'z':'C0','s':'C#0','x':'D0','d':'D#0','c':'E0','v':'F0','g':'F#0','b':'G0','h':'G#0','n':'A0','j':'A#0','m':'B0',
+  'q':'C1','2':'C#1','w':'D1','3':'D#1','e':'E1','r':'F1','5':'F#1','t':'G1','6':'G#1','y':'A1','7':'A#1','u':'B1'
+};
+
+// Build piano keys data — 2 octaves
+const keysData = [];
+const baseOctave = () => 4 + octaveOffset;
+
+// Keyboard label per note
+const keyLabels = {};
+Object.entries(KEY_MAP).forEach(([k,v]) => { keyLabels[v] = k.toUpperCase(); });
+
+function buildPiano() {
+  const piano = document.getElementById('piano');
+  piano.innerHTML = '';
+  keysData.length = 0;
+
+  const oct = baseOctave();
+
+  // 2 octaves: 14 white keys, 10 black keys
+  const layout = [];
+  for (let o = 0; o < 2; o++) {
+    WHITE_NOTES.forEach((n, i) => {
+      layout.push({ note: n, octave: oct + o, isBlack: false, whiteIdx: o * 7 + i });
+    });
+    Object.entries(BLACK_NOTES).forEach(([pos, n]) => {
+      layout.push({ note: n, octave: oct + o, isBlack: true, afterWhite: o * 7 + parseInt(pos) - 1 });
+    });
+  }
+
+  // Create white keys first
+  const whites = layout.filter(k => !k.isBlack);
+  const blacks = layout.filter(k => k.isBlack);
+
+  const whiteWidth = 54; // px per white key
+
+  whites.forEach((k, i) => {
+    const el = document.createElement('div');
+    el.className = 'key';
+    const id = `${k.note}${k.octave - 4 + octaveOffset === 0 ? '0' : '1'}`;
+    el.dataset.id = id;
+    el.dataset.note = k.note;
+    el.dataset.octave = k.octave;
+    el.innerHTML = `<span class="note-label">${k.note}${k.octave}</span><span class="key-label">${keyLabels[id] ?? ''}</span>`;
+    el.addEventListener('mousedown', () => startNote(k.note, k.octave, id));
+    el.addEventListener('mouseup', () => stopNote(id));
+    el.addEventListener('mouseleave', () => { if (!sustainOn) stopNote(id); });
+    piano.appendChild(el);
+    keysData.push({ ...k, id, el });
+  });
+
+  blacks.forEach(k => {
+    const id = `${k.note.replace('#','s')}${k.octave - 4 + octaveOffset === 0 ? '0' : '1'}`.replace('s','#').replace(/C#/,'C#').replace(/D#/,'D#').replace(/F#/,'F#').replace(/G#/,'G#').replace(/A#/,'A#');
+    const noteId = `${k.note}${k.octave < baseOctave() + 1 ? '0' : '1'}`;
+    const el = document.createElement('div');
+    el.className = 'key black';
+    el.dataset.id = noteId;
+    el.dataset.note = k.note;
+    el.dataset.octave = k.octave;
+    // Position: afterWhite * whiteWidth + offset
+    const leftPx = k.afterWhite * whiteWidth + (whiteWidth - 34/2) + 2;
+    el.style.left = leftPx + 'px';
+    el.innerHTML = `<span class="note-label">${k.note}${k.octave}</span><span class="key-label">${keyLabels[noteId] ?? ''}</span>`;
+    el.addEventListener('mousedown', e => { e.stopPropagation(); startNote(k.note, k.octave, noteId); });
+    el.addEventListener('mouseup', e => { e.stopPropagation(); stopNote(noteId); });
+    el.addEventListener('mouseleave', () => { if (!sustainOn) stopNote(noteId); });
+    piano.appendChild(el);
+    keysData.push({ ...k, id: noteId, el });
+  });
+}
+
+function getKeyEl(id) {
+  return document.querySelector(`.key[data-id="${id}"]`);
+}
+
+function startNote(note, octave, id) {
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  if (activeNodes[id]) return;
+
+  const freq = noteHz(note, octave);
+  const gain = audioCtx.createGain();
+  gain.connect(masterGain);
+  gain.connect(convolver);
+
+  const now = audioCtx.currentTime;
+
+  if (waveType === 'piano') {
+    // Piano-like: multiple harmonics with fast decay
+    const oscs = [];
+    [[1, 0.7], [2, 0.2], [3, 0.08], [4, 0.03]].forEach(([mult, amp]) => {
+      const o = audioCtx.createOscillator();
+      o.type = 'triangle';
+      o.frequency.value = freq * mult;
+      const g = audioCtx.createGain();
+      g.gain.setValueAtTime(amp, now);
+      g.gain.exponentialRampToValueAtTime(amp * 0.001, now + (sustainOn ? 4 : 2));
+      o.connect(g);
+      g.connect(gain);
+      o.start(now);
+      oscs.push({ osc: o, g });
+    });
+    gain.gain.setValueAtTime(0.8, now);
+    activeNodes[id] = { type: 'piano', oscs, gain };
+
+  } else if (waveType === 'violin') {
+    // 바이올린: 톱니파 + 비브라토 LFO + 로우패스 필터 + 느린 어택
+    const osc = audioCtx.createOscillator();
+    osc.type = 'sawtooth';
+    osc.frequency.value = freq;
+
+    // 비브라토: 0.5초 후 점진적으로 적용
+    const vibLFO = audioCtx.createOscillator();
+    vibLFO.type = 'sine';
+    vibLFO.frequency.value = 5.5;
+    const vibGain = audioCtx.createGain();
+    vibGain.gain.setValueAtTime(0, now);
+    vibGain.gain.linearRampToValueAtTime(freq * 0.015, now + 0.5);
+    vibLFO.connect(vibGain);
+    vibGain.connect(osc.frequency);
+
+    // 활 소리 질감: 로우패스 필터
+    const filter = audioCtx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 4200;
+    filter.Q.value = 2.5;
+    osc.connect(filter);
+    filter.connect(gain);
+
+    // 2nd harmonic for richness
+    const osc2 = audioCtx.createOscillator();
+    osc2.type = 'sawtooth';
+    osc2.frequency.value = freq * 2;
+    const g2 = audioCtx.createGain();
+    g2.gain.value = 0.12;
+    osc2.connect(g2);
+    g2.connect(gain);
+
+    // 활 어택: 천천히 음량 올라옴
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(0.38, now + 0.12);
+
+    osc.start(now);
+    osc2.start(now);
+    vibLFO.start(now);
+    activeNodes[id] = { type: 'violin', osc, osc2, vibLFO, gain };
+
+  } else if (waveType === 'guitar') {
+    // 기타: 빠른 어택 + 자연 감쇠 (퉁기는 느낌)
+    const decayTime = Math.max(0.8, 2.8 - freq / 800);
+    const oscs = [];
+    [[1, 0.55, 'sawtooth'], [2, 0.22, 'triangle'], [3, 0.12, 'triangle'], [4, 0.06, 'sine'], [5, 0.03, 'sine']].forEach(([mult, amp, type]) => {
+      const o = audioCtx.createOscillator();
+      o.type = type;
+      o.frequency.value = freq * mult;
+      const g = audioCtx.createGain();
+      g.gain.setValueAtTime(amp, now + 0.004);
+      g.gain.exponentialRampToValueAtTime(amp * 0.001, now + decayTime);
+      o.connect(g);
+      g.connect(gain);
+      o.start(now);
+      oscs.push({ osc: o, g });
+    });
+    // 기타 바디 공명
+    const bodyFilter = audioCtx.createBiquadFilter();
+    bodyFilter.type = 'peaking';
+    bodyFilter.frequency.value = 240;
+    bodyFilter.gain.value = 5;
+    bodyFilter.Q.value = 1.5;
+    gain.connect(bodyFilter);
+    bodyFilter.connect(masterGain);
+
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(0.72, now + 0.004);
+    activeNodes[id] = { type: 'guitar', oscs, gain };
+    // 자연 감쇠 후 자동 정리
+    setTimeout(() => {
+      oscs.forEach(({ osc }) => { try { osc.stop(); } catch(e) {} });
+      if (activeNodes[id]) {
+        delete activeNodes[id];
+        const el = getKeyEl(id);
+        if (el) el.classList.remove('active');
+      }
+    }, (decayTime + 0.1) * 1000);
+
+  } else {
+    const osc = audioCtx.createOscillator();
+    osc.type = waveType;
+    osc.frequency.value = freq;
+    osc.connect(gain);
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(0.5, now + 0.01);
+    osc.start(now);
+    activeNodes[id] = { type: 'osc', osc, gain };
+  }
+
+  const el = getKeyEl(id);
+  if (el) el.classList.add('active');
+}
+
+function stopNote(id) {
+  const node = activeNodes[id];
+  if (!node) return;
+  if (sustainOn) return;
+
+  const now = audioCtx.currentTime;
+  if (node.type === 'piano') {
+    node.gain.gain.cancelScheduledValues(now);
+    node.gain.gain.setValueAtTime(node.gain.gain.value, now);
+    node.gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+    setTimeout(() => { node.oscs.forEach(({osc}) => { try { osc.stop(); } catch(e){} }); }, 400);
+  } else if (node.type === 'violin') {
+    // 활을 뗀 것처럼 부드럽게 종료
+    node.gain.gain.cancelScheduledValues(now);
+    node.gain.gain.setValueAtTime(node.gain.gain.value, now);
+    node.gain.gain.linearRampToValueAtTime(0, now + 0.18);
+    setTimeout(() => {
+      try { node.osc.stop(); } catch(e) {}
+      try { node.osc2.stop(); } catch(e) {}
+      try { node.vibLFO.stop(); } catch(e) {}
+    }, 300);
+  } else if (node.type === 'guitar') {
+    // 기타는 자연 감쇠 — 강제로 끊지 않음 (auto-timeout이 정리)
+  } else {
+    node.gain.gain.cancelScheduledValues(now);
+    node.gain.gain.setValueAtTime(node.gain.gain.value, now);
+    node.gain.gain.linearRampToValueAtTime(0, now + 0.1);
+    setTimeout(() => { try { node.osc.stop(); } catch(e){} }, 200);
+  }
+  delete activeNodes[id];
+  const el = getKeyEl(id);
+  if (el) el.classList.remove('active');
+}
+
+function stopAllNotes() {
+  Object.keys(activeNodes).forEach(stopNote);
+}
+
+// Keyboard input
+const pressedKeys = new Set();
+
+document.addEventListener('keydown', e => {
+  if (e.repeat) return;
+  const k = e.key.toLowerCase();
+  const mapped = KEY_MAP[k];
+  if (!mapped) return;
+  pressedKeys.add(k);
+
+  const [note, octIdx] = [mapped.slice(0, -1), parseInt(mapped.slice(-1))];
+  const octave = baseOctave() + octIdx;
+  startNote(note, octave, mapped);
+});
+
+document.addEventListener('keyup', e => {
+  const k = e.key.toLowerCase();
+  const mapped = KEY_MAP[k];
+  if (!mapped) return;
+  pressedKeys.delete(k);
+  stopNote(mapped);
+});
+
+// Prevent context menu on piano
+document.getElementById('piano').addEventListener('contextmenu', e => e.preventDefault());
+
+// Volume
+document.getElementById('volume').addEventListener('input', e => {
+  masterGain.gain.value = e.target.value / 100;
+});
+
+// Wave type
+document.getElementById('waveType').addEventListener('change', e => {
+  waveType = e.target.value;
+  stopAllNotes();
+});
+
+// Octave
+document.getElementById('octDown').addEventListener('click', () => {
+  if (octaveOffset > -2) { octaveOffset--; updateOctave(); }
+});
+document.getElementById('octUp').addEventListener('click', () => {
+  if (octaveOffset < 3) { octaveOffset++; updateOctave(); }
+});
+
+function updateOctave() {
+  document.getElementById('octaveLabel').textContent = 4 + octaveOffset;
+  stopAllNotes();
+  buildPiano();
+}
+
+// Sustain
+document.getElementById('sustainBtn').addEventListener('click', () => {
+  sustainOn = !sustainOn;
+  const btn = document.getElementById('sustainBtn');
+  btn.textContent = sustainOn ? '서스테인 ON' : '서스테인 OFF';
+  btn.classList.toggle('active-btn', sustainOn);
+  if (!sustainOn) stopAllNotes();
+});
+
+buildPiano();
+</script>
+</body>
+</html>

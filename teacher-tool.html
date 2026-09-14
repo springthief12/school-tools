@@ -1,0 +1,1700 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>선생님 도구 — 올인원 교사 업무 보조</title>
+  <style>
+    /* ═══ FONTS ═══ */
+    @font-face {
+      font-family: 'Binggrae';
+      src: local('Binggrae Bold'), local('빙그레 Bold'), local('빙그레체 Bold');
+      font-weight: 700; font-style: normal; font-display: swap;
+    }
+
+    /* ═══ RESET + BASE ═══ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --accent:      #FFD600;           /* vivid yellow — primary accent */
+      --accent-dark: #B89A00;           /* darker yellow for text on light bg */
+      --accent-text: #1A1A1A;           /* text on yellow background */
+      --accent-mid:  rgba(255,214,0,0.16);
+      --accent-soft: rgba(255,214,0,0.10);
+      --ios-blue:   #007AFF;
+      --ios-green:  #34C759;
+      --ios-orange: #FF9500;
+      --ios-red:    #FF3B30;
+      --ios-purple: #AF52DE;
+      --ios-teal:   #30B0C7;
+      --ios-gray:   #8E8E93;
+      --ios-gray2:  #AEAEB2;
+      --ios-gray3:  #C7C7CC;
+      --bg-page:    #F5F5F5;
+      --bg-card:    #FFFFFF;
+      --bg-sidebar: #FAFAFA;
+      --bg-input:   rgba(0,0,0,0.05);
+      --text-primary:   #1A1A1A;
+      --text-secondary: #5A5A5A;
+      --text-muted:     #9A9A9A;
+      --border: rgba(0,0,0,0.11);
+      --shadow-sm: 0 1px 3px rgba(55,53,47,0.08), 0 1px 2px rgba(55,53,47,0.05);
+      --shadow-md: 0 4px 16px rgba(55,53,47,0.08), 0 1px 4px rgba(55,53,47,0.05);
+      --shadow-lg: 0 8px 32px rgba(55,53,47,0.12), 0 2px 8px rgba(55,53,47,0.06);
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --transition: 0.2s ease;
+      --sidebar-w: 226px;
+      --font: 'HCGothicB', 'HCGothic', '한컴고딕', 'Malgun Gothic', sans-serif;
+      --font-nav: 'Binggrae', 'Malgun Gothic', sans-serif;
+    }
+    body {
+      font-family: var(--font); font-size: 18px; font-weight: 700;
+      background: var(--bg-page); color: var(--text-primary);
+      line-height: 1.6; -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    /* ═══ LAYOUT ═══ */
+    .tt-app { display: flex; min-height: 100vh; }
+
+    /* ─── SIDEBAR ─── */
+    .tt-sidebar {
+      width: var(--sidebar-w); position: fixed; top: 0; left: 0;
+      height: 100vh; background: var(--bg-sidebar);
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; z-index: 100; overflow-y: auto;
+    }
+    .tt-sidebar::-webkit-scrollbar { width: 4px; }
+    .tt-sidebar::-webkit-scrollbar-thumb { background: var(--ios-gray3); border-radius: 2px; }
+
+    /* ─── SIDEBAR PHOTO ─── */
+    .tt-sidebar-photo-wrap { padding: 14px 14px 0; }
+    .tt-sidebar-photo {
+      width: 100%; aspect-ratio: 1/1;
+      border-radius: var(--radius-md); overflow: hidden; cursor: pointer;
+      background: var(--bg-page); border: 1.5px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      transition: border-color var(--transition);
+    }
+    .tt-sidebar-photo:hover { border-color: rgba(255,214,0,0.7); }
+    .tt-sidebar-photo img  { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .tt-sidebar-photo-ph   { font-size: 38px; user-select: none; }
+
+    /* ─── SIDEBAR DATE NAV ─── */
+    .tt-sidebar-date-wrap { padding:14px 10px 10px; border-bottom:1px solid var(--border); position:relative; }
+    .tt-sidebar-date-row  { display:flex; align-items:center; gap:4px; }
+    .tt-sidebar-date-pill {
+      flex:1; text-align:center; padding:9px 4px; border-radius:var(--radius-sm);
+      background:var(--bg-page); border:1.5px solid var(--border);
+      cursor:pointer; user-select:none; font-size:16px; font-weight:700; line-height:1.4;
+      transition:background var(--transition), border-color var(--transition);
+    }
+    .tt-sidebar-date-pill:hover { background:var(--accent-soft); border-color:rgba(255,214,0,0.6); }
+    .tt-sidebar-date-pill .day-sub { font-size:13px; font-weight:400; color:var(--text-muted); display:block; }
+    .tt-sidebar-today-btn {
+      display:block; width:100%; margin-top:7px; padding:5px 0;
+      text-align:center; font-size:14px; font-weight:700; color:var(--accent-text);
+      border:none; background:var(--accent); cursor:pointer; font-family:var(--font);
+      border-radius:var(--radius-sm); transition:filter var(--transition);
+    }
+    .tt-sidebar-today-btn:hover { filter:brightness(0.92); }
+
+    .tt-nav { list-style: none; padding: 8px 0; flex: 1; }
+    .tt-nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 14px; margin: 2px 8px; border-radius: var(--radius-sm);
+      cursor: pointer; font-size: 17px; font-weight: 700;
+      font-family: var(--font-nav);
+      color: var(--text-secondary); user-select: none;
+      transition: background var(--transition), color var(--transition);
+    }
+    .tt-nav-item:hover { background: rgba(0,0,0,0.05); }
+    .tt-nav-item.active { background: var(--accent-mid); color: var(--accent-text); font-weight: 700; border-left: 3px solid var(--accent); margin-left: 5px; padding-left: 11px; }
+    .tt-nav-icon { font-size: 21px; width: 26px; text-align: center; flex-shrink: 0; font-family: sans-serif; }
+    .tt-sidebar-footer {
+      padding: 12px 16px; border-top: 1px solid var(--border);
+      display: flex; flex-direction: column; gap: 4px;
+    }
+    .tt-clock { font-size: 25px; font-weight: 700; text-align: center; font-variant-numeric: tabular-nums; }
+    .tt-today-badge { font-size: 15px; color: var(--text-muted); text-align: center; }
+
+    /* ─── MAIN ─── */
+    .tt-main {
+      margin-left: var(--sidebar-w); flex: 1;
+      padding: 28px 28px 60px; min-height: 100vh;
+    }
+    .tt-section { display: none; }
+    .tt-section.active { display: block; animation: secIn 0.18s ease; }
+    @keyframes secIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+    /* ═══ TYPOGRAPHY ═══ */
+    .tt-page-title { font-size: 31px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 4px; }
+    .tt-page-sub   { font-size: 17px; color: var(--text-muted); margin-bottom: 22px; }
+
+    /* ═══ CARDS ═══ */
+    .tt-card { background: var(--bg-card); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); overflow: hidden; }
+    .tt-card + .tt-card { margin-top: 12px; }
+    .tt-card-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 16px 10px; border-bottom: 1px solid var(--border);
+    }
+    .tt-card-title { font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+    .tt-card-body  { padding: 16px; }
+
+    /* ─── STAT CARDS ─── */
+    .tt-stat-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 16px; }
+    .tt-stat-card {
+      background: var(--bg-card); border-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm); padding: 16px;
+      position: relative; overflow: hidden;
+    }
+    .tt-stat-card::before {
+      content: ''; position: absolute; top: 0; left: 0;
+      width: 4px; height: 100%; background: var(--accent, var(--ios-blue));
+      border-radius: 4px 0 0 4px;
+    }
+    .tt-stat-value { font-size: 33px; font-weight: 700; line-height: 1.1; }
+    .tt-stat-label { font-size: 15px; color: var(--text-muted); margin-top: 4px; }
+
+    /* ═══ GRIDS ═══ */
+    .tt-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+
+    /* ═══ BUTTONS ═══ */
+    .tt-btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+      border: none; border-radius: var(--radius-sm); padding: 9px 18px;
+      font-size: 17px; font-weight: 700; font-family: var(--font);
+      cursor: pointer; white-space: nowrap; text-decoration: none;
+      transition: filter var(--transition), transform 0.1s;
+    }
+    .tt-btn:hover  { filter: brightness(0.92); }
+    .tt-btn:active { transform: scale(0.97); }
+    .tt-btn--primary  { background: var(--accent);   color: var(--accent-text); }
+    .tt-btn--danger   { background: var(--ios-red);  color: #fff; }
+    .tt-btn--ghost    { background: var(--bg-input); color: var(--text-secondary); }
+    .tt-btn--text     { background: transparent; color: var(--text-secondary); padding: 4px 8px; font-weight: 600; }
+    .tt-btn--sm       { padding: 6px 12px; font-size: 15px; border-radius: 7px; }
+    .tt-btn--icon     { padding: 7px 10px; border-radius: var(--radius-sm); }
+
+    /* ═══ BADGES ═══ */
+    .tt-badge { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 20px; font-size: 15px; font-weight: 700; }
+    .tt-badge--blue   { background: var(--accent-mid); color: var(--accent-dark); }
+    .tt-badge--green  { background: rgba(52,199,89,0.14); color: #1a7a36; }
+    .tt-badge--orange { background: rgba(255,149,0,0.15); color: #8a4d00; }
+    .tt-badge--red    { background: rgba(255,59,48,0.13); color: #b02020; }
+    .tt-badge--gray   { background: rgba(142,142,147,0.15); color: #555; }
+    .tt-badge--purple { background: rgba(175,82,222,0.13); color: #7030a8; }
+
+    /* ═══ INPUTS ═══ */
+    .tt-input, .tt-textarea, .tt-select {
+      width: 100%; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+      padding: 11px 14px; font-size: 18px; font-family: var(--font); font-weight: 700;
+      color: var(--text-primary); background: var(--bg-card); outline: none;
+      transition: border-color var(--transition), box-shadow var(--transition);
+    }
+    .tt-input:focus, .tt-textarea:focus, .tt-select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(255,214,0,0.28);
+    }
+    .tt-textarea { resize: vertical; min-height: 80px; line-height: 1.6; }
+    .tt-form-group { margin-bottom: 14px; }
+    .tt-form-group:last-child { margin-bottom: 0; }
+    .tt-form-label { display: block; font-size: 16px; font-weight: 700; color: var(--text-secondary); margin-bottom: 5px; }
+    .tt-form-row   { display: flex; gap: 10px; }
+    .tt-form-row .tt-form-group { flex: 1; }
+    .tt-divider { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
+
+    /* ═══ EMPTY STATE ═══ */
+    .tt-empty {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; gap: 10px; padding: 40px 20px;
+      color: var(--text-muted); text-align: center;
+    }
+    .tt-empty-icon { font-size: 41px; }
+    .tt-empty-text { font-size: 16px; line-height: 1.6; }
+
+    /* ═══ TABLE ═══ */
+    .tt-table { width: 100%; border-collapse: collapse; }
+    .tt-table th, .tt-table td { padding: 11px 14px; text-align: left; border-bottom: 1px solid var(--border); font-size: 17px; }
+    .tt-table th { font-weight: 700; color: var(--text-muted); font-size: 15px; text-transform: uppercase; letter-spacing: 0.4px; background: rgba(55,53,47,0.03); }
+    .tt-table tbody tr:last-child td { border-bottom: none; }
+
+    /* ═══ TOAST ═══ */
+    .tt-toast {
+      position: fixed; bottom: 24px; left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: rgba(28,28,30,0.9); color: #fff;
+      padding: 11px 26px; border-radius: 24px; font-size: 17px; font-weight: 700;
+      transition: transform 0.28s cubic-bezier(0.34,1.56,0.64,1);
+      z-index: 9999; pointer-events: none; white-space: nowrap;
+      backdrop-filter: blur(10px);
+    }
+    .tt-toast.show    { transform: translateX(-50%) translateY(0); }
+    .tt-toast.success { background: rgba(52,199,89,0.92); }
+    .tt-toast.danger  { background: rgba(255,59,48,0.92); }
+
+    /* ═══ MODAL ═══ */
+    .tt-modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+      display: flex; align-items: center; justify-content: center; z-index: 1000;
+      backdrop-filter: blur(4px); animation: ovIn 0.15s ease;
+    }
+    @keyframes ovIn { from { opacity: 0; } to { opacity: 1; } }
+    .tt-modal-box {
+      background: var(--bg-card); border-radius: var(--radius-lg);
+      width: min(92vw, 500px); max-height: 88vh; overflow-y: auto;
+      box-shadow: var(--shadow-lg);
+      animation: mIn 0.2s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    @keyframes mIn { from { opacity:0; transform: scale(0.94) translateY(12px); } to { opacity:1; transform: none; } }
+    .tt-modal-box::-webkit-scrollbar { width: 5px; }
+    .tt-modal-box::-webkit-scrollbar-thumb { background: var(--ios-gray3); border-radius: 3px; }
+    .tt-modal-head {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 20px 14px; border-bottom: 1px solid var(--border);
+      position: sticky; top: 0; background: var(--bg-card); z-index: 1;
+      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    }
+    .tt-modal-title { font-size: 20px; font-weight: 700; }
+    .tt-modal-close {
+      width: 28px; height: 28px; border-radius: 50%; border: none;
+      background: var(--bg-input); color: var(--text-secondary);
+      font-size: 17px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: background var(--transition); font-family: var(--font);
+    }
+    .tt-modal-close:hover { background: var(--ios-gray3); }
+    .tt-modal-body { padding: 20px; }
+    .tt-modal-foot {
+      display: flex; gap: 8px; padding: 14px 20px;
+      border-top: 1px solid var(--border);
+      border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+      background: rgba(242,242,247,0.8);
+    }
+    .tt-modal-foot .tt-btn { flex: 1; padding: 10px; }
+
+    /* ═══ DASHBOARD ═══ */
+    .tt-dash-header {
+      display: flex; align-items: flex-end; justify-content: space-between;
+      margin-bottom: 22px; padding-bottom: 18px; border-bottom: 1px solid var(--border);
+      flex-wrap: wrap; gap: 12px;
+    }
+    .tt-greeting     { font-size: 27px; font-weight: 700; margin-bottom: 3px; }
+    .tt-date-str     { font-size: 17px; color: var(--text-muted); }
+    .tt-dash-clock   { font-size: 45px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -1px; }
+    .tt-period-pills { display: flex; gap: 6px; flex-wrap: wrap; }
+    .tt-period-pill  {
+      display: flex; flex-direction: column; align-items: center;
+      padding: 6px 10px; border-radius: 10px; background: var(--bg-page);
+      min-width: 54px; gap: 2px; border: 1.5px solid var(--border);
+      transition: all var(--transition);
+    }
+    .tt-period-pill.current { background: var(--accent); border-color: var(--accent); color: var(--accent-text); box-shadow: 0 2px 8px rgba(255,214,0,0.35); }
+    .tt-period-pill.past    { opacity: 0.42; }
+    .tt-period-num  { font-size: 16px; font-weight: 600; color: var(--text-muted); }
+    .tt-period-pill.current .tt-period-num { color: rgba(255,255,255,0.75); }
+    .tt-period-subj { font-size: 17px; font-weight: 700; }
+
+    /* ─── DASHBOARD TIMETABLE GRID ─── */
+    .tt-dash-tt { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+    .tt-dash-tt-cell {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 8px 3px; border-radius: var(--radius-sm);
+      background: var(--bg-page); border: 1.5px solid var(--border);
+      gap: 4px; text-align: center; transition: all var(--transition); min-height: 76px;
+    }
+    .tt-dash-tt-cell.current { background: var(--accent); border-color: var(--accent); color: var(--accent-text); box-shadow: 0 2px 8px rgba(255,214,0,0.35); }
+    .tt-dash-tt-cell.past    { opacity: 0.38; }
+    .tt-dash-tt-num  { font-size: 13px; font-weight: 600; color: var(--text-muted); line-height: 1; }
+    .tt-dash-tt-cell.current .tt-dash-tt-num { color: rgba(26,26,26,0.6); }
+    .tt-dash-tt-subj { font-size: 15px; font-weight: 700; line-height: 1.2; word-break: keep-all; }
+    .tt-week-cols   { display: grid; grid-template-columns: repeat(5,1fr); gap: 8px; }
+    .tt-week-col    { background: var(--bg-page); border-radius: var(--radius-sm); padding: 8px; min-height: 60px; }
+    .tt-week-col-lbl{ font-size: 14px; font-weight: 600; color: var(--text-muted); margin-bottom: 5px; text-align: center; }
+    .tt-week-col.today .tt-week-col-lbl { color: var(--accent-dark); font-weight: 700; }
+    .tt-ev-chip     { font-size: 14px; padding: 4px 8px; border-radius: 5px; margin-bottom: 3px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* ─── MONTH NAV + CALENDAR ─── */
+    .tt-month-nav { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+    .tt-month-nav-cur { font-size:20px; font-weight:700; }
+    .tt-mcal-head { display:grid; grid-template-columns:repeat(5,1fr); gap:3px; margin-bottom:4px; }
+    .tt-mcal-hdr  { text-align:center; font-size:14px; font-weight:700; color:var(--text-muted); padding:3px 0; }
+    .tt-mcal-week { display:grid; grid-template-columns:repeat(5,1fr); gap:3px; margin-bottom:3px; }
+    .tt-mcal-day  {
+      aspect-ratio:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+      border-radius:var(--radius-sm); border:1.5px solid transparent; cursor:pointer;
+      background:var(--bg-page); gap:3px; transition:all 0.13s;
+    }
+    .tt-mcal-day:hover:not(.out-month):not(.holiday) { border-color:rgba(255,214,0,0.6); background:var(--accent-soft); }
+    .tt-mcal-day.selected { border-color:var(--accent); background:var(--accent-mid); color:var(--accent-text); font-weight:700; }
+    .tt-mcal-day.has-entry { background:rgba(52,199,89,0.14); }
+    .tt-mcal-day.has-entry.selected { border-color:var(--ios-green); background:rgba(52,199,89,0.24); color:#186b32; }
+    .tt-mcal-day.today:not(.selected) { border-color:var(--accent); }
+    .tt-mcal-day.holiday { background:rgba(255,149,0,0.09); cursor:default; }
+    .tt-mcal-day.holiday:hover { border-color:transparent; }
+    .tt-mcal-day.out-month { background:transparent; border-color:transparent; cursor:default; }
+    .tt-mcal-day.out-month:hover { background:transparent; border-color:transparent; }
+    .tt-mcal-day-num  { font-size:16px; font-weight:600; line-height:1; }
+    .tt-mcal-hol-txt  { font-size:12px; color:var(--ios-orange); font-weight:500; }
+    .tt-mcal-dot      { width:6px; height:6px; border-radius:50%; background:var(--ios-green); }
+    .tt-mcal-day.has-entry.selected .tt-mcal-dot { background:#186b32; }
+    .tt-mcal-summary  { font-size:14px; color:var(--text-muted); margin-top:6px; text-align:right; }
+
+    /* ─── DASH DATE PICKER ─── */
+    .tt-dash-date-nav  { display:flex; align-items:center; gap:8px; position:relative; }
+    .tt-dash-date-pill {
+      display:inline-flex; align-items:center; gap:5px;
+      padding:6px 14px; border-radius:20px; border:1.5px solid var(--border);
+      background:var(--bg-card); font-size:17px; font-weight:700;
+      cursor:pointer; user-select:none; box-shadow:var(--shadow-sm);
+      transition:background var(--transition);
+    }
+    .tt-dash-date-pill:hover { background:var(--bg-page); }
+    .tt-minical {
+      position:absolute; top:calc(100% + 8px); left:50%; transform:translateX(-50%);
+      background:var(--bg-card); border-radius:var(--radius-md);
+      box-shadow:var(--shadow-lg); padding:14px 12px; z-index:500; min-width:264px;
+      border:1px solid var(--border); animation:mIn 0.15s ease;
+    }
+    .tt-minical-hdr  { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+    .tt-minical-month{ font-size:17px; font-weight:700; }
+    .tt-minical-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:2px; }
+    .tt-minical-wday { font-size:13px; font-weight:600; color:var(--text-muted); text-align:center; padding:4px 0; }
+    .tt-minical-wday:first-child { color:var(--ios-red); }
+    .tt-minical-wday:last-child  { color:var(--text-muted); }
+    .tt-minical-day  {
+      aspect-ratio:1; display:flex; align-items:center; justify-content:center;
+      border-radius:50%; cursor:pointer; font-size:15px; font-weight:500;
+      transition:background 0.12s;
+    }
+    .tt-minical-day:hover:not(.tm-today):not(.mc-sel) { background:var(--bg-page); }
+    .tt-minical-day.tm-today { background:var(--accent); color:var(--accent-text) !important; }
+    .tt-minical-day.mc-sel:not(.tm-today) { background:var(--accent-mid); color:var(--accent-dark); font-weight:700; }
+    .tt-minical-day.other-m { opacity:0.38; }
+    .tt-minical-day.day-sun { color:var(--ios-red); }
+    .tt-minical-day.day-sat { color:var(--text-muted); }
+
+    /* ═══ DASHBOARD MONTH CALENDAR ═══ */
+    .tt-dash-cal-head { display:grid; grid-template-columns:repeat(7,1fr); gap:2px; margin-bottom:4px; }
+    .tt-dash-cal-wday { text-align:center; font-size:14px; font-weight:700; color:var(--text-muted); padding:5px 0; }
+    .tt-dash-cal-wday:first-child { color:var(--ios-red); }
+    .tt-dash-cal-wday:last-child  { color:var(--text-muted); }
+    .tt-dash-cal-body { display:grid; grid-template-columns:repeat(7,1fr); gap:2px; }
+    .tt-dash-cal-day  {
+      min-height:58px; padding:6px 4px; border-radius:9px; cursor:pointer;
+      border:1.5px solid transparent; transition:all 0.12s;
+      display:flex; flex-direction:column; align-items:center; gap:3px;
+    }
+    .tt-dash-cal-day:hover:not(.other-month) { background:rgba(0,0,0,0.04); border-color:rgba(0,0,0,0.10); }
+    .tt-dash-cal-day.today { border-color:var(--accent); }
+    .tt-dash-cal-day.today .tt-dash-cal-num { background:var(--accent); color:var(--accent-text); border-radius:50%; width:26px; height:26px; display:inline-flex; align-items:center; justify-content:center; }
+    .tt-dash-cal-day.selected:not(.today) { background:var(--accent-mid); border-color:rgba(255,214,0,0.55); }
+    .tt-dash-cal-day.other-month { opacity:0.25; cursor:default; }
+    .tt-dash-cal-day.holiday .tt-dash-cal-num { color:var(--ios-orange); }
+    .tt-dash-cal-day.day-sun .tt-dash-cal-num { color:var(--ios-red); }
+    .tt-dash-cal-day.day-sat .tt-dash-cal-num { color:var(--text-muted); }
+    .tt-dash-cal-num  { font-size:15px; font-weight:700; line-height:1; }
+    .tt-dash-cal-hol  { font-size:13px; color:var(--ios-orange); margin-left:2px; }
+    .tt-dash-cal-dots { display:flex; gap:3px; align-items:center; }
+    .tt-dash-cal-dot  { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+    .dot-att   { background:var(--ios-green); }
+    .dot-duty  { background:var(--ios-red); }
+    .dot-ev    { background:var(--accent-dark); }
+    .tt-dash-cal-legend { display:flex; gap:16px; margin-top:10px; font-size:16px; color:var(--text-muted); justify-content:flex-end; align-items:center; }
+    .tt-dash-cal-legend > span { display:flex; align-items:center; gap:5px; }
+
+    /* ═══ TIMETABLE ═══ */
+    .tt-tt-grid { width: 100%; border-collapse: collapse; }
+    .tt-tt-grid th, .tt-tt-grid td { border: 1px solid var(--border); padding: 9px 7px; text-align: center; font-size: 16px; font-weight: 600; }
+    .tt-tt-grid th   { background: #1a3a5c; color: #fff; font-size: 15px; }
+    .tt-tt-grid .tt-tt-period { background: rgba(0,0,0,0.03); color: var(--text-secondary); font-size: 14px; width: 64px; font-weight: 500; }
+    .tt-tt-grid td.hol { background: #FFF9C4; }
+    .tt-tt-grid th.hol { background: #d4af30; color: #3a2800; }
+    .tt-tt-grid th.cur { background: #1a3a5c !important; }
+
+    /* ═══ ATTENDANCE ═══ */
+    .tt-att-nav { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+    .tt-att-date-display { font-size: 20px; font-weight: 700; flex: 1; text-align: center; }
+    .tt-att-summary { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+    .tt-att-stat { background: var(--bg-card); border-radius: var(--radius-sm); padding: 10px 14px; box-shadow: var(--shadow-sm); text-align: center; flex: 1; min-width: 60px; }
+    .tt-att-stat-val { font-size: 25px; font-weight: 700; }
+    .tt-att-stat-lbl { font-size: 14px; color: var(--text-muted); }
+    .tt-att-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--border); }
+    .tt-att-row:last-child { border-bottom: none; }
+    .tt-att-num  { width: 28px; height: 28px; border-radius: 50%; background: var(--bg-page); display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: var(--text-muted); flex-shrink: 0; }
+    .tt-att-name { flex: 1; font-weight: 600; font-size: 17px; }
+    .tt-att-btns { display: flex; gap: 4px; flex-wrap: wrap; }
+    .tt-att-btn  {
+      padding: 6px 11px; border-radius: 7px; border: 1.5px solid var(--border);
+      font-size: 15px; font-weight: 600; cursor: pointer; background: var(--bg-card);
+      color: var(--text-muted); font-family: var(--font); transition: all 0.15s;
+    }
+    .tt-att-btn:hover { filter: brightness(0.93); }
+    .tt-att-btn.att-present { border-color: var(--ios-green);  background: rgba(52,199,89,0.1);  color: #1a7a36; }
+    .tt-att-btn.att-late    { border-color: var(--ios-orange); background: rgba(255,149,0,0.1);  color: #8a4d00; }
+    .tt-att-btn.att-early   { border-color: var(--ios-teal);   background: rgba(48,176,199,0.1); color: #0a6575; }
+    .tt-att-btn.att-absent  { border-color: var(--ios-red);    background: rgba(255,59,48,0.1);  color: #b02020; }
+    .tt-stu-mgr { background: var(--bg-page); border-radius: var(--radius-md); padding: 16px; margin-top: 14px; border: 1.5px solid var(--border); }
+    .tt-stu-mgr-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 17px; font-weight: 700; }
+
+    /* ═══ LIFE GUIDANCE ═══ */
+    .tt-lg-layout { display: flex; gap: 14px; min-height: calc(100vh - 200px); }
+    .tt-lg-datesidebar { width: 178px; flex-shrink: 0; background: var(--bg-card); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); overflow-y: auto; max-height: calc(100vh - 200px); }
+    .tt-lg-datesidebar::-webkit-scrollbar { width: 4px; }
+    .tt-lg-datesidebar::-webkit-scrollbar-thumb { background: var(--ios-gray3); border-radius: 2px; }
+    .tt-lg-main { flex: 1; display: flex; flex-direction: column; gap: 12px; }
+    .tt-lg-date-item { padding: 10px 14px; cursor: pointer; font-size: 16px; border-bottom: 1px solid var(--border); transition: background var(--transition); color: var(--text-secondary); }
+    .tt-lg-date-item:hover { background: rgba(0,0,0,0.04); }
+    .tt-lg-date-item.active { background: var(--accent-mid); color: var(--accent-dark); font-weight: 600; }
+    .tt-lg-date-item.has-entry { color: var(--text-primary); font-weight: 600; }
+    .tt-lg-date-preview { font-size: 16px; color: var(--text-muted); margin-top: 2px; font-weight: 400; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tt-lg-editor { flex: 1; background: var(--bg-card); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); padding: 18px; display: flex; flex-direction: column; }
+    .tt-lg-date-hdr { font-size: 19px; font-weight: 700; margin-bottom: 12px; }
+    .tt-lg-ta {
+      flex: 1; width: 100%; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+      padding: 15px 17px; font-size: 19px; font-family: var(--font); font-weight: 700; line-height: 1.85;
+      resize: vertical; min-height: 260px; background: var(--bg-page); outline: none;
+      transition: border-color var(--transition), box-shadow var(--transition);
+    }
+    .tt-lg-ta:focus { border-color: var(--accent); background: var(--bg-card); box-shadow: 0 0 0 3px rgba(255,214,0,0.28); }
+    .tt-lg-chars { font-size: 14px; color: var(--text-muted); text-align: right; margin-top: 4px; }
+    .tt-lg-chips { display: flex; gap: 6px; flex-wrap: wrap; padding: 8px 0 0; }
+    .tt-lg-chip { padding: 5px 12px; border-radius: 14px; font-size: 15px; font-weight: 600; background: var(--accent-mid); color: var(--accent-dark); cursor: pointer; border: none; font-family: var(--font); transition: background var(--transition); }
+    .tt-lg-chip:hover { background: rgba(255,214,0,0.28); }
+
+    /* ═══ DUTIES ═══ */
+    .tt-view-pills { display: flex; gap: 6px; margin-bottom: 16px; }
+    .tt-view-pill { padding: 8px 20px; border-radius: 20px; font-size: 17px; font-weight: 700; cursor: pointer; border: 1.5px solid var(--border); background: var(--bg-card); color: var(--text-muted); transition: all 0.15s; font-family: var(--font); }
+    .tt-view-pill.active { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+    .tt-task-card { background: var(--bg-card); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); padding: 14px 16px; margin-bottom: 10px; display: flex; align-items: flex-start; gap: 12px; transition: box-shadow var(--transition); }
+    .tt-task-card:hover { box-shadow: var(--shadow-md); }
+    .tt-task-card.done { opacity: 0.52; }
+    .tt-task-card.done .tt-task-title { text-decoration: line-through; color: var(--text-muted); }
+    .tt-task-check { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--ios-gray3); flex-shrink: 0; margin-top: 1px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; background: #fff; }
+    .tt-task-card.done .tt-task-check { background: var(--ios-green); border-color: var(--ios-green); }
+    .tt-task-body { flex: 1; }
+    .tt-task-title  { font-size: 18px; font-weight: 700; margin-bottom: 3px; }
+    .tt-task-detail { font-size: 16px; color: var(--text-muted); margin-bottom: 6px; line-height: 1.5; }
+    .tt-task-meta   { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+    .tt-task-actions{ display: flex; gap: 4px; flex-shrink: 0; }
+    .tt-weekly-grid { display: grid; grid-template-columns: repeat(5,1fr); gap: 10px; }
+    .tt-weekly-col  { background: var(--bg-card); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); padding: 12px; min-height: 180px; }
+    .tt-weekly-col-hdr { font-size: 15px; font-weight: 700; text-align: center; padding-bottom: 8px; border-bottom: 1px solid var(--border); margin-bottom: 8px; color: var(--text-secondary); }
+    .tt-weekly-col.today .tt-weekly-col-hdr { color: var(--accent-dark); }
+    .tt-weekly-task { font-size: 15px; padding: 6px 9px; border-radius: 6px; margin-bottom: 5px; cursor: pointer; line-height: 1.4; font-weight: 500; }
+    .tt-weekly-nav  { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+    .tt-weekly-range{ font-size: 18px; font-weight: 700; }
+
+    /* ═══ SCHEDULE ═══ */
+    .tt-cal-nav { display: flex; align-items: center; gap: 12px; }
+    .tt-cal-month { font-size: 23px; font-weight: 700; }
+    .tt-cal-weekdays { display: grid; grid-template-columns: repeat(7,1fr); text-align: center; font-size: 14px; font-weight: 600; color: var(--text-muted); margin-bottom: 4px; }
+    .tt-cal-weekdays span:first-child { color: var(--ios-red); }
+    .tt-cal-weekdays span:last-child  { color: var(--text-muted); }
+    .tt-cal-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 2px; }
+    .tt-cal-day { min-height: 78px; background: var(--bg-card); border-radius: var(--radius-sm); padding: 6px 6px 4px; cursor: pointer; transition: box-shadow var(--transition); border: 1.5px solid transparent; }
+    .tt-cal-day:hover { box-shadow: var(--shadow-sm); border-color: rgba(0,0,0,0.1); }
+    .tt-cal-day.other-month { opacity: 0.38; }
+    .tt-cal-day.today { border-color: var(--accent); }
+    .tt-cal-day-num { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+    .tt-cal-day.today .tt-cal-day-num { background: var(--accent); color: var(--accent-text); border-radius: 50%; width: 26px; height: 26px; display: inline-flex; align-items: center; justify-content: center; }
+    .tt-cal-day.day-sun .tt-cal-day-num { color: var(--ios-red); }
+    .tt-cal-day.day-sat .tt-cal-day-num { color: var(--text-muted); }
+    .ev-blue   { background: rgba(0,122,255,0.12); color: #004fa3; }
+    .ev-green  { background: rgba(52,199,89,0.15); color: #186b32; }
+    .ev-orange { background: rgba(255,149,0,0.15); color: #7a4200; }
+    .ev-red    { background: rgba(255,59,48,0.12); color: #8b0000; }
+    .ev-purple { background: rgba(175,82,222,0.13); color: #5c1a88; }
+    .ev-teal   { background: rgba(48,176,199,0.15); color: #0a6070; }
+    .ev-gray   { background: rgba(142,142,147,0.15); color: #555; }
+
+    /* ═══ RESPONSIVE ═══ */
+    @media (max-width: 900px) {
+      .tt-stat-grid { grid-template-columns: repeat(2,1fr); }
+      .tt-grid-2    { grid-template-columns: 1fr; }
+      .tt-weekly-grid { grid-template-columns: repeat(2,1fr); }
+    }
+    @media (max-width: 640px) {
+      :root { --sidebar-w: 60px; }
+      .tt-nav-label, .tt-today-badge { display: none; }
+      .tt-nav-item { justify-content: center; padding: 12px 0; }
+      .tt-clock    { font-size: 14px; }
+      .tt-sidebar-date-wrap { padding: 10px 4px 8px; }
+      .tt-sidebar-date-row { gap: 2px; }
+      .tt-sidebar-date-pill { font-size: 12px; padding: 5px 2px; }
+      .tt-sidebar-date-pill .day-sub { display: none; }
+      .tt-sidebar-today-btn { font-size: 11px; }
+      .tt-main  { padding: 14px; }
+      .tt-stat-grid { grid-template-columns: repeat(2,1fr); }
+      .tt-lg-layout { flex-direction: column; }
+      .tt-lg-datesidebar { width: 100%; max-height: 140px; }
+      .tt-weekly-grid { grid-template-columns: 1fr 1fr; }
+      .tt-cal-day { min-height: 52px; }
+    }
+  </style>
+</head>
+<body>
+<div class="tt-app">
+
+  <!-- ═══ SIDEBAR ═══ -->
+  <nav class="tt-sidebar">
+    <div id="sidebarPhotoArea"></div>
+    <div id="sidebarDateNav"></div>
+    <ul class="tt-nav" id="navList">
+      <li class="tt-nav-item active" data-section="dashboard">
+        <span class="tt-nav-icon">🏠</span><span class="tt-nav-label">대시보드</span>
+      </li>
+      <li class="tt-nav-item" data-section="timetable">
+        <span class="tt-nav-icon">📅</span><span class="tt-nav-label">시간표</span>
+      </li>
+      <li class="tt-nav-item" data-section="attendance">
+        <span class="tt-nav-icon">✅</span><span class="tt-nav-label">출석부</span>
+      </li>
+      <li class="tt-nav-item" data-section="lifeguide">
+        <span class="tt-nav-icon">📓</span><span class="tt-nav-label">생활지도</span>
+      </li>
+      <li class="tt-nav-item" data-section="duties">
+        <span class="tt-nav-icon">📋</span><span class="tt-nav-label">업무</span>
+      </li>
+      <li class="tt-nav-item" data-section="schedule">
+        <span class="tt-nav-icon">🗓</span><span class="tt-nav-label">일정표</span>
+      </li>
+    </ul>
+    <div class="tt-sidebar-footer">
+      <div class="tt-clock" id="sidebarClock"></div>
+      <div class="tt-today-badge" id="sidebarDate"></div>
+    </div>
+  </nav>
+
+  <!-- ═══ MAIN ═══ -->
+  <main class="tt-main">
+    <section id="sec-dashboard"  class="tt-section active"><div id="dash-root"></div></section>
+    <section id="sec-timetable"  class="tt-section"><div id="tt-root"></div></section>
+    <section id="sec-attendance" class="tt-section"><div id="att-root"></div></section>
+    <section id="sec-lifeguide"  class="tt-section"><div id="lg-root"></div></section>
+    <section id="sec-duties"     class="tt-section"><div id="duties-root"></div></section>
+    <section id="sec-schedule"   class="tt-section"><div id="sched-root"></div></section>
+  </main>
+</div>
+
+<!-- ═══ MODAL ═══ -->
+<div class="tt-modal-overlay" id="modalOverlay" style="display:none" onclick="onOverlayBg(event)">
+  <div class="tt-modal-box" id="modalBox"></div>
+</div>
+
+<div class="tt-toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════
+//  CONSTANTS
+// ═══════════════════════════════════════════════
+const PERIODS     = ['1교시','2교시','3교시','4교시','5교시','6교시','7교시'];
+const DAY_SHORT   = ['월','화','수','목','금'];
+const DAY_FULL    = ['일','월','화','수','목','금','토'];
+const EVENT_COLORS= ['blue','green','orange','red','purple','teal'];
+const PRI_LABEL   = { high:'높음', normal:'보통', low:'낮음' };
+
+const PERIOD_TIMES = [
+  { s:'08:30', e:'09:30' }, { s:'09:30', e:'10:25' }, { s:'10:25', e:'11:20' },
+  { s:'11:20', e:'12:15' }, { s:'12:15', e:'14:05' }, { s:'14:05', e:'15:00' },
+  { s:'15:00', e:'15:55' },
+];
+
+const HOLIDAYS = {
+  '2026-10-09':'한글날', '2026-12-25':'크리스마스', '2027-01-01':'신정',
+};
+
+const WEEKS = [
+  { label:'8월 1주', dates:['2026-08-17','2026-08-18','2026-08-19','2026-08-20','2026-08-21'] },
+  { label:'8월 2주', dates:['2026-08-24','2026-08-25','2026-08-26','2026-08-27','2026-08-28'] },
+  { label:'9월 1주', dates:['2026-08-31','2026-09-01','2026-09-02','2026-09-03','2026-09-04'] },
+  { label:'9월 2주', dates:['2026-09-07','2026-09-08','2026-09-09','2026-09-10','2026-09-11'] },
+  { label:'9월 3주', dates:['2026-09-14','2026-09-15','2026-09-16','2026-09-17','2026-09-18'] },
+  { label:'9월 4주', dates:['2026-09-21','2026-09-22','2026-09-23','2026-09-24','2026-09-25'] },
+  { label:'9월 5주', dates:['2026-09-28','2026-09-29','2026-09-30','2026-10-01','2026-10-02'] },
+  { label:'10월 1주', dates:['2026-10-05','2026-10-06','2026-10-07','2026-10-08','2026-10-09'] },
+  { label:'10월 2주', dates:['2026-10-12','2026-10-13','2026-10-14','2026-10-15','2026-10-16'] },
+  { label:'10월 3주', dates:['2026-10-19','2026-10-20','2026-10-21','2026-10-22','2026-10-23'] },
+  { label:'10월 4주', dates:['2026-10-26','2026-10-27','2026-10-28','2026-10-29','2026-10-30'] },
+  { label:'11월 1주', dates:['2026-11-02','2026-11-03','2026-11-04','2026-11-05','2026-11-06'] },
+  { label:'11월 2주', dates:['2026-11-09','2026-11-10','2026-11-11','2026-11-12','2026-11-13'] },
+  { label:'11월 3주', dates:['2026-11-16','2026-11-17','2026-11-18','2026-11-19','2026-11-20'] },
+  { label:'11월 4주', dates:['2026-11-23','2026-11-24','2026-11-25','2026-11-26','2026-11-27'] },
+  { label:'12월 1주', dates:['2026-11-30','2026-12-01','2026-12-02','2026-12-03','2026-12-04'] },
+  { label:'12월 2주', dates:['2026-12-07','2026-12-08','2026-12-09','2026-12-10','2026-12-11'] },
+  { label:'12월 3주', dates:['2026-12-14','2026-12-15','2026-12-16','2026-12-17','2026-12-18'] },
+  { label:'12월 4주', dates:['2026-12-21','2026-12-22','2026-12-23','2026-12-24','2026-12-25'] },
+  { label:'12월 5주', dates:['2026-12-28','2026-12-29','2026-12-30','2026-12-31','2027-01-01'] },
+  { label:'1월 1주',  dates:['2027-01-04','2027-01-05','2027-01-06','2027-01-07','2027-01-08'] },
+  { label:'1월 2주',  dates:['2027-01-11','2027-01-12','2027-01-13','2027-01-14','2027-01-15'] },
+];
+
+const SK_TT    = 'school_timetable_2026_2nd'; // READ-ONLY
+const SK_ATT   = 'tt_attendance_v2'; // free-text diary (v2)
+const SK_LG    = 'tt_lifeguide_v1';
+const SK_DU    = 'tt_duties_v1';
+const SK_SC    = 'tt_schedule_v1';
+const SK_UI    = 'tt_ui_state_v1';
+const SK_PHOTO = 'tt_profile_photo';
+
+// ═══════════════════════════════════════════════
+//  UTILITIES
+// ═══════════════════════════════════════════════
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function genId() {
+  try { return crypto.randomUUID(); }
+  catch { return Math.random().toString(36).slice(2)+Date.now().toString(36); }
+}
+function todayKey() {
+  const d=new Date();
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+}
+function pad(n) { return String(n).padStart(2,'0'); }
+function dateToKey(d) { return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
+function parseKey(k)  { const [y,m,d]=k.split('-').map(Number); return new Date(y,m-1,d); }
+function addDays(k,n) { const d=parseKey(k); d.setDate(d.getDate()+n); return dateToKey(d); }
+function isToday(k)   { return k===todayKey(); }
+function isWeekend(k) { const dw=parseKey(k).getDay(); return dw===0||dw===6; }
+function fmtLong(k) {
+  const d=parseKey(k);
+  return `${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일 (${DAY_FULL[d.getDay()]})`;
+}
+function fmtShort(k) {
+  const d=parseKey(k);
+  return `${d.getMonth()+1}/${d.getDate()}(${DAY_FULL[d.getDay()]})`;
+}
+function fmtMonth(y,m) { return `${y}년 ${m}월`; }
+function weekMon(k) {
+  const d=parseKey(k), dw=d.getDay();
+  d.setDate(d.getDate()+(dw===0?-6:1-dw));
+  return dateToKey(d);
+}
+function getCurrentPeriodIdx() {
+  const n=new Date(), hm=`${pad(n.getHours())}:${pad(n.getMinutes())}`;
+  return PERIOD_TIMES.findIndex(p=>hm>=p.s&&hm<p.e);
+}
+function isPastPeriod(i) {
+  const n=new Date(), hm=`${pad(n.getHours())}:${pad(n.getMinutes())}`;
+  return hm>=PERIOD_TIMES[i].e;
+}
+function debounce(fn,ms) { let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a),ms); }; }
+function findCurrentWeekIdx() {
+  const t=todayKey();
+  let i=WEEKS.findIndex(w=>w.dates.includes(t));
+  if (i===-1) i=WEEKS.findIndex(w=>w.dates[0]>=t);
+  return Math.max(0, i===-1?WEEKS.length-1:i);
+}
+function yearMonth(key) { return key.slice(0,7); } // 'YYYY-MM-DD' → 'YYYY-MM'
+function prevMonthKey(ym) {
+  const [y,m]=ym.split('-').map(Number);
+  return m===1?`${y-1}-12`:`${y}-${pad(m-1)}`;
+}
+function nextMonthKey(ym) {
+  const [y,m]=ym.split('-').map(Number);
+  return m===12?`${y+1}-01`:`${y}-${pad(m+1)}`;
+}
+function fmtYM(ym) { const [,m]=ym.split('-').map(Number); return `${m}월`; }
+function fmtYMFull(ym) { const [y,m]=ym.split('-').map(Number); return `${y}년 ${m}월`; }
+
+function buildMonthCal(ym, selDate, entries, goFn) {
+  const [y,m]=ym.split('-').map(Number);
+  const relWeeks=WEEKS.filter(w=>
+    w.dates.some(d=>{ const p=d.split('-').map(Number); return p[0]===y&&p[1]===m; })
+  );
+  const hdr=['월','화','수','목','금'].map(h=>`<div class="tt-mcal-hdr">${h}</div>`).join('');
+  if(!relWeeks.length) return `<div class="tt-mcal-head">${hdr}</div><div class="tt-mcal-summary">이 달에 수업일이 없습니다.</div>`;
+  let totalDays=0, recordedDays=0;
+  const rows=relWeeks.map(w=>{
+    const cells=w.dates.map(d=>{
+      const p=d.split('-').map(Number);
+      if(p[0]!==y||p[1]!==m) return `<div class="tt-mcal-day out-month"></div>`;
+      if(HOLIDAYS[d]) return `<div class="tt-mcal-day holiday" title="${HOLIDAYS[d]}"><div class="tt-mcal-day-num">${p[2]}</div><div class="tt-mcal-hol-txt">${HOLIDAYS[d]}</div></div>`;
+      totalDays++;
+      const has=!!(entries[d]?.trim());
+      if(has) recordedDays++;
+      const isSel=d===selDate, isT=isToday(d);
+      return `<div class="tt-mcal-day${has?' has-entry':''}${isSel?' selected':''}${isT?' today':''}" onclick="${goFn}('${d}')">
+        <div class="tt-mcal-day-num">${p[2]}</div>
+        ${has?'<div class="tt-mcal-dot"></div>':''}
+      </div>`;
+    }).join('');
+    return `<div class="tt-mcal-week">${cells}</div>`;
+  }).join('');
+  const summary=`<div class="tt-mcal-summary">총 수업일 ${totalDays}일 · 기록된 날 ${recordedDays}일</div>`;
+  return `<div class="tt-mcal-head">${hdr}</div>${rows}${summary}`;
+}
+
+// Full 7-column (Sun-Sat) month calendar — used by att/lg sections
+function buildFullMonthCal(ym, selDate, entries, goFn) {
+  const [y,m]=ym.split('-').map(Number);
+  const today=todayKey();
+  const wdays=['일','월','화','수','목','금','토'].map(w=>`<div class="tt-dash-cal-wday">${w}</div>`).join('');
+  const first=new Date(y,m-1,1), last=new Date(y,m,0);
+  const startDow=first.getDay(), days=last.getDate();
+  let cells='';
+  for(let i=0;i<startDow;i++){
+    const d2=new Date(y,m-1,1-(startDow-i)), k=dateToKey(d2), dw=d2.getDay();
+    cells+=`<div class="tt-dash-cal-day other-month${dw===0?' day-sun':dw===6?' day-sat':''}" onclick="${goFn}('${k}')"><div class="tt-dash-cal-num">${d2.getDate()}</div></div>`;
+  }
+  for(let day=1;day<=days;day++){
+    const k=`${y}-${pad(m)}-${pad(day)}`, dw=new Date(y,m-1,day).getDay();
+    const isHol=!!HOLIDAYS[k], isSel=k===selDate, isT=k===today;
+    const hasEntry=!!(entries[k]?.trim());
+    const holLabel=isHol?`<span class="tt-dash-cal-hol">${HOLIDAYS[k]}</span>`:'';
+    let cls=`tt-dash-cal-day${dw===0?' day-sun':dw===6?' day-sat':''}${isHol?' holiday':''}${isSel?' selected':''}${isT?' today':''}`;
+    cells+=`<div class="${cls}" onclick="${goFn}('${k}')">
+      <div class="tt-dash-cal-num">${day}${holLabel}</div>
+      ${hasEntry?'<div class="tt-dash-cal-dot dot-att"></div>':''}
+    </div>`;
+  }
+  const trail=(startDow+days)%7;
+  if(trail>0) for(let i=1;i<=7-trail;i++){
+    const d2=new Date(y,m,i), k=dateToKey(d2), dw=d2.getDay();
+    cells+=`<div class="tt-dash-cal-day other-month${dw===0?' day-sun':dw===6?' day-sat':''}" onclick="${goFn}('${k}')"><div class="tt-dash-cal-num">${i}</div></div>`;
+  }
+  const recCount=Object.keys(entries).filter(k=>k.startsWith(ym)&&entries[k]?.trim()).length;
+  const summary=`<div class="tt-mcal-summary">기록된 날 ${recCount}일</div>`;
+  return `<div class="tt-dash-cal-head">${wdays}</div><div class="tt-dash-cal-body">${cells}</div>${summary}`;
+}
+
+// ═══════════════════════════════════════════════
+//  STORAGE
+// ═══════════════════════════════════════════════
+function load(key,fb) {
+  try { const r=localStorage.getItem(key); return r?JSON.parse(r):fb; }
+  catch { return fb; }
+}
+function save(key,data) {
+  try { localStorage.setItem(key,JSON.stringify(data)); }
+  catch { showToast('저장 공간이 부족합니다.','danger'); }
+}
+
+// ═══════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════
+let ttData = {}, att = {entries:{}}, lg = {entries:{}};
+let duties = {tasks:[]}, sched = {events:[]}, ui = {};
+
+function loadAll() {
+  ttData  = load(SK_TT, {});
+  att     = load(SK_ATT, {entries:{}});
+  lg      = load(SK_LG,  {entries:{}});
+  duties  = load(SK_DU,  {tasks:[]});
+  sched   = load(SK_SC,  {events:[]});
+  ui      = load(SK_UI, {
+    sec:'dashboard', attDate:todayKey(), lgDate:todayKey(),
+    dutiesView:'list', dutiesWeek:weekMon(todayKey()),
+    schedY:new Date().getFullYear(), schedM:new Date().getMonth()+1,
+    ttWeekIdx:findCurrentWeekIdx(),
+    dashDate:todayKey(),
+    dashMonth:yearMonth(todayKey()),
+    attMonth:yearMonth(todayKey()),
+    lgMonth:yearMonth(todayKey()),
+  });
+}
+const saveUI  = ()=>save(SK_UI,ui);
+const saveAtt = ()=>save(SK_ATT,att);
+const saveLg  = ()=>save(SK_LG,lg);
+const saveDu  = ()=>save(SK_DU,duties);
+const saveSc  = ()=>save(SK_SC,sched);
+
+// ═══════════════════════════════════════════════
+//  TOAST
+// ═══════════════════════════════════════════════
+let toastTmr=null;
+function showToast(msg,type='info') {
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.className=`tt-toast ${type} show`;
+  if(toastTmr) clearTimeout(toastTmr);
+  toastTmr=setTimeout(()=>el.classList.remove('show'),2400);
+}
+
+// ═══════════════════════════════════════════════
+//  MODAL
+// ═══════════════════════════════════════════════
+function openModal(html) {
+  document.getElementById('modalBox').innerHTML=html;
+  document.getElementById('modalOverlay').style.display='flex';
+}
+function closeModal() { document.getElementById('modalOverlay').style.display='none'; }
+function onOverlayBg(e) { if(e.target.id==='modalOverlay') closeModal(); }
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeModal(); });
+
+// ═══════════════════════════════════════════════
+//  NAVIGATION
+// ═══════════════════════════════════════════════
+function navigateTo(id) {
+  document.querySelectorAll('.tt-section').forEach(s=>s.classList.remove('active'));
+  document.getElementById('sec-'+id).classList.add('active');
+  document.querySelectorAll('.tt-nav-item').forEach(el=>el.classList.toggle('active',el.dataset.section===id));
+  ui.sec=id; saveUI(); renderSection(id);
+}
+function renderSection(id) {
+  if(id==='dashboard')  renderDash();
+  if(id==='timetable')  renderTT();
+  if(id==='attendance') renderAtt();
+  if(id==='lifeguide')  renderLg();
+  if(id==='duties')     renderDuties();
+  if(id==='schedule')   renderSched();
+}
+document.getElementById('navList').addEventListener('click',e=>{
+  const item=e.target.closest('.tt-nav-item');
+  if(item) navigateTo(item.dataset.section);
+});
+
+// ═══════════════════════════════════════════════
+//  SIDEBAR CLOCK + DATE NAV
+// ═══════════════════════════════════════════════
+function tickClock() {
+  const n=new Date();
+  const el=document.getElementById('sidebarClock');
+  if(el) el.textContent=`${pad(n.getHours())}:${pad(n.getMinutes())}`;
+}
+
+function renderSidebarPhoto() {
+  const wrap=document.getElementById('sidebarPhotoArea'); if(!wrap) return;
+  const photo=localStorage.getItem(SK_PHOTO);
+  wrap.innerHTML=`
+    <div class="tt-sidebar-photo-wrap">
+      <div class="tt-sidebar-photo" onclick="sidebarPhotoClick()" title="클릭하여 사진 변경">
+        ${photo
+          ? `<img src="${photo}" alt="프로필 사진">`
+          : `<span class="tt-sidebar-photo-ph">📷</span>`}
+      </div>
+    </div>`;
+}
+
+function sidebarPhotoClick() {
+  const inp=document.createElement('input');
+  inp.type='file'; inp.accept='image/*';
+  inp.onchange=e=>{
+    const file=e.target.files[0]; if(!file) return;
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      try {
+        localStorage.setItem(SK_PHOTO, ev.target.result);
+        renderSidebarPhoto();
+      } catch {
+        showToast('이미지가 너무 큽니다. 더 작은 이미지를 사용해주세요.','danger');
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+  inp.click();
+}
+
+function renderSidebarDateNav() {
+  const wrap=document.getElementById('sidebarDateNav'); if(!wrap) return;
+  const date=ui.dashDate||todayKey();
+  const isT=isToday(date);
+  const d=parseKey(date);
+  const monthDay=`${d.getMonth()+1}월 ${d.getDate()}일`;
+  const dayName=`${DAY_FULL[d.getDay()]}요일`;
+  wrap.innerHTML=`
+    <div class="tt-sidebar-date-wrap" id="sidebarDateNavInner">
+      <div class="tt-sidebar-date-row">
+        <button class="tt-btn tt-btn--ghost tt-btn--icon" onclick="sidebarNav(-1)" style="padding:6px 8px;flex-shrink:0">‹</button>
+        <div class="tt-sidebar-date-pill" onclick="toggleSidebarCal(event)">
+          ${monthDay}<span class="day-sub">${dayName}</span>
+        </div>
+        <button class="tt-btn tt-btn--ghost tt-btn--icon" onclick="sidebarNav(1)" style="padding:6px 8px;flex-shrink:0">›</button>
+      </div>
+      ${!isT?`<button class="tt-sidebar-today-btn" onclick="sidebarGoToday()">오늘로 돌아가기</button>`:''}
+    </div>`;
+}
+
+let _sbCalY=null, _sbCalM=null;
+
+function sidebarNav(d) {
+  const newDate=addDays(ui.dashDate||todayKey(),d);
+  ui.dashDate=newDate; ui.dashMonth=yearMonth(newDate); saveUI();
+  renderSidebarDateNav();
+  if(ui.sec==='dashboard') renderDash();
+}
+function sidebarGoToday() {
+  ui.dashDate=todayKey(); ui.dashMonth=yearMonth(todayKey()); saveUI();
+  renderSidebarDateNav();
+  if(ui.sec==='dashboard') renderDash();
+}
+function toggleSidebarCal(e) {
+  e.stopPropagation();
+  const existing=document.getElementById('sidebarCalPop');
+  if(existing) { existing.remove(); return; }
+  const d=parseKey(ui.dashDate||todayKey());
+  _sbCalY=d.getFullYear(); _sbCalM=d.getMonth()+1;
+  renderSidebarCalPopup();
+}
+function renderSidebarCalPopup() {
+  const pill=document.querySelector('.tt-sidebar-date-pill'); if(!pill) return;
+  const old=document.getElementById('sidebarCalPop'); if(old) old.remove();
+  const pop=document.createElement('div');
+  pop.id='sidebarCalPop'; pop.className='tt-minical';
+  pop.style.cssText='position:fixed;z-index:600;width:268px;transform:none;left:0;top:0;';
+  pop.innerHTML=buildCalHtml(_sbCalY, _sbCalM, 'sidebarPickDate', 'sidebarCalNav');
+  pop.addEventListener('click',e=>e.stopPropagation());
+  document.body.appendChild(pop);
+  const rect=pill.getBoundingClientRect();
+  let left=rect.left;
+  if(left+268>window.innerWidth-8) left=window.innerWidth-276;
+  pop.style.left=`${Math.max(4,left)}px`;
+  pop.style.top=`${rect.bottom+6}px`;
+}
+function sidebarCalNav(d) {
+  _sbCalM+=d;
+  if(_sbCalM<1){_sbCalY--;_sbCalM=12;}
+  if(_sbCalM>12){_sbCalY++;_sbCalM=1;}
+  renderSidebarCalPopup();
+}
+function sidebarPickDate(k) {
+  ui.dashDate=k; ui.dashMonth=yearMonth(k); saveUI();
+  const pop=document.getElementById('sidebarCalPop'); if(pop) pop.remove();
+  renderSidebarDateNav();
+  if(ui.sec==='dashboard') renderDash();
+}
+
+// ═══════════════════════════════════════════════
+//  DASHBOARD
+// ═══════════════════════════════════════════════
+let _dashCalY=null, _dashCalM=null;
+
+function renderDash() {
+  const date = ui.dashDate || todayKey();
+  const upcoming=getSortedTasks().slice(0,10);
+  const attText=att.entries[date]||'';
+  const guideText=lg.entries[date]||'';
+  const dashMonth = ui.dashMonth || yearMonth(date);
+  const prevDM = prevMonthKey(dashMonth), nextDM = nextMonthKey(dashMonth);
+
+  document.getElementById('dash-root').innerHTML=`
+    <div class="tt-card" style="margin-bottom:16px">
+      <div class="tt-card-header">
+        <button class="tt-btn tt-btn--ghost tt-btn--sm" onclick="dashMonthNav('${prevDM}')">‹ ${fmtYM(prevDM)}</button>
+        <div class="tt-month-nav-cur">${fmtYMFull(dashMonth)}</div>
+        <button class="tt-btn tt-btn--ghost tt-btn--sm" onclick="dashMonthNav('${nextDM}')">${fmtYM(nextDM)} ›</button>
+      </div>
+      <div class="tt-card-body">${buildDashMonthCal(dashMonth, date)}</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:stretch">
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="tt-card">
+          <div class="tt-card-header">
+            <div class="tt-card-title">· 시간표</div>
+          </div>
+          <div class="tt-card-body">${buildDashTimetable(date)}</div>
+        </div>
+        <div class="tt-card" style="flex:1;display:flex;flex-direction:column">
+          <div class="tt-card-header">
+            <div class="tt-card-title">· 다가오는 업무</div>
+            <button class="tt-btn tt-btn--primary tt-btn--sm" onclick="openDutyModal(null)">+ 추가</button>
+          </div>
+          <div class="tt-card-body" style="flex:1">${buildDashDuties(upcoming)}</div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="tt-card" style="display:flex;flex-direction:column">
+          <div class="tt-card-header">
+            <div class="tt-card-title">· 출결 기록</div>
+          </div>
+          <div class="tt-card-body" style="flex:1;display:flex;flex-direction:column">${buildDashAttEdit(date, attText)}</div>
+        </div>
+        <div class="tt-card" style="flex:1;display:flex;flex-direction:column">
+          <div class="tt-card-header">
+            <div class="tt-card-title">· 생활지도 일지</div>
+          </div>
+          <div class="tt-card-body" style="flex:1;display:flex;flex-direction:column">${buildDashGuideEdit(date, guideText)}</div>
+        </div>
+      </div>
+    </div>`;
+
+  // Attendance textarea auto-save
+  const attTa=document.getElementById('dashAttTa');
+  if(attTa) {
+    const capDate=date;
+    const attAutoSave=debounce(txt=>{ attWriteEntryDate(capDate,txt); },700);
+    attTa.addEventListener('input',()=>attAutoSave(attTa.value));
+  }
+  // Lifeguide textarea auto-save
+  const lgTa=document.getElementById('dashLgTa');
+  if(lgTa) {
+    const capturedDate=date;
+    const autoSave=debounce(txt=>{ lgWriteEntryDate(capturedDate,txt); },700);
+    lgTa.addEventListener('input',()=>autoSave(lgTa.value));
+  }
+}
+
+function buildDashAttEdit(date, text) {
+  return `
+    <textarea id="dashAttTa" class="tt-textarea" style="flex:1;min-height:80px;font-size:16px;line-height:1.75;resize:none"
+      >${esc(text)}</textarea>
+    <div style="display:flex;justify-content:flex-end;gap:6px;margin-top:6px;flex-shrink:0">
+      <button class="tt-btn tt-btn--ghost tt-btn--sm" onclick="dashAttSave()">💾 저장</button>
+    </div>`;
+}
+
+function dashAttSave() {
+  const ta=document.getElementById('dashAttTa'); if(!ta) return;
+  attWriteEntryDate(ui.dashDate||todayKey(),ta.value);
+  showToast('저장되었습니다.','success');
+}
+
+function buildDashTimetable(today) {
+  if(isWeekend(today)) return `<div class="tt-empty" style="padding:20px"><div class="tt-empty-icon">🏖</div><div class="tt-empty-text">오늘은 주말입니다.</div></div>`;
+  if(!Object.keys(ttData).length) return `<div style="font-size:16px;color:var(--text-muted);margin-bottom:10px">시간표 데이터 없음. timetable.html에서 입력하세요.</div><a href="timetable.html" target="_blank" class="tt-btn tt-btn--primary tt-btn--sm">시간표 편집기 열기</a>`;
+  const cur=getCurrentPeriodIdx();
+  const cells=PERIODS.map((_, i)=>{
+    const cell=ttData[`${today}__${i}`];
+    const subj=cell?(cell.content||'—'):'—';
+    const isCurrent=cur===i, isPast=!isCurrent&&isPastPeriod(i);
+    let bgStyle='';
+    if(!isCurrent&&cell&&cell.color&&cell.color!=='#FFFFFF') bgStyle=`style="background:${cell.color};border-color:${cell.color}"`;
+    const cls=`tt-dash-tt-cell${isCurrent?' current':isPast?' past':''}`;
+    return `<div class="${cls}" ${bgStyle}><span class="tt-dash-tt-num">${i+1}교시</span><span class="tt-dash-tt-subj">${esc(subj)}</span></div>`;
+  }).join('');
+  return `<div class="tt-dash-tt">${cells}</div>`;
+}
+
+function getSortedTasks() {
+  const t=todayKey();
+  return [...duties.tasks].filter(x=>!x.done).sort((a,b)=>{
+    if(!a.deadline&&!b.deadline) return 0;
+    if(!a.deadline) return 1; if(!b.deadline) return -1;
+    return a.deadline<b.deadline?-1:1;
+  });
+}
+
+function buildDashDuties(tasks) {
+  if(!tasks.length) return `<div class="tt-empty" style="padding:18px"><div class="tt-empty-icon">🎉</div><div class="tt-empty-text">예정된 업무 없음!</div></div>`;
+  const t=todayKey();
+  const items=tasks.map(tk=>{
+    const ov=tk.deadline&&tk.deadline<t;
+    const soon=!ov&&tk.deadline&&tk.deadline<=addDays(t,3);
+    const bcls=ov?'tt-badge--red':soon?'tt-badge--orange':'tt-badge--gray';
+    return `<div style="display:flex;align-items:center;gap:6px;padding:7px 9px;border-radius:var(--radius-sm);background:var(--bg-page)">
+      <div style="flex:1;font-size:15px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">${esc(tk.title)}</div>
+      <span class="tt-badge ${bcls}" style="font-size:13px;padding:2px 7px;flex-shrink:0">${tk.deadline?fmtShort(tk.deadline):'기한없음'}</span>
+    </div>`;
+  }).join('');
+  return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">${items}</div>`;
+}
+
+function buildDashGuideEdit(date, text) {
+  return `
+    <textarea id="dashLgTa" class="tt-textarea" style="flex:1;min-height:80px;font-size:16px;line-height:1.75;resize:none"
+      >${esc(text)}</textarea>
+    <div style="display:flex;justify-content:flex-end;gap:6px;margin-top:6px;flex-shrink:0">
+      <button class="tt-btn tt-btn--ghost tt-btn--sm" onclick="dashLgSave()">💾 저장</button>
+    </div>`;
+}
+
+function buildDashWeek(days) {
+  const cols=days.map(day=>{
+    const evs=getEventsOnDate(day);
+    const d=parseKey(day);
+    const isT=isToday(day);
+    const evHtml=evs.slice(0,3).map(ev=>`<div class="tt-ev-chip ev-${ev.color}">${esc(ev.title)}</div>`).join('')+(evs.length>3?`<div style="font-size:13px;color:var(--text-muted)">외 ${evs.length-3}건</div>`:'');
+    return `<div class="tt-week-col${isT?' today':''}"><div class="tt-week-col-lbl" ${isT?'style="color:var(--accent-dark)"':''}>${d.getDate()}일(${DAY_FULL[d.getDay()]})</div>${evHtml||`<div style="font-size:14px;color:var(--ios-gray3)">없음</div>`}</div>`;
+  }).join('');
+  return `<div class="tt-week-cols">${cols}</div>`;
+}
+
+// ═══════════════════════════════════════════════
+//  DASHBOARD — DATE NAV + MINI CALENDAR
+// ═══════════════════════════════════════════════
+function dashNav(d) {
+  const newDate=addDays(ui.dashDate||todayKey(),d);
+  ui.dashDate=newDate; ui.dashMonth=yearMonth(newDate); saveUI();
+  renderSidebarDateNav(); renderDash();
+}
+function dashGoToday() {
+  ui.dashDate=todayKey(); ui.dashMonth=yearMonth(todayKey()); saveUI();
+  renderSidebarDateNav(); renderDash();
+}
+function dashMonthNav(ym) { ui.dashMonth=ym; saveUI(); renderDash(); }
+
+function toggleDashCal(e) {
+  e.stopPropagation();
+  const existing=document.getElementById('dashCalPop');
+  if(existing) { existing.remove(); return; }
+  const date=ui.dashDate||todayKey();
+  const d=parseKey(date);
+  _dashCalY=d.getFullYear(); _dashCalM=d.getMonth()+1;
+  renderDashCal();
+}
+
+function renderDashCal() {
+  const nav=document.getElementById('dashDateNav');
+  if(!nav) return;
+  const old=document.getElementById('dashCalPop'); if(old) old.remove();
+  const pop=document.createElement('div');
+  pop.id='dashCalPop'; pop.className='tt-minical';
+  pop.innerHTML=buildDashCalHtml(_dashCalY,_dashCalM);
+  pop.addEventListener('click',e=>e.stopPropagation());
+  nav.appendChild(pop);
+}
+
+// Shared mini-calendar builder: pickFn(dateKey), navFn(delta)
+function buildCalHtml(y, m, pickFn, navFn) {
+  const selDate=ui.dashDate||todayKey(), today=todayKey();
+  const wdays=['일','월','화','수','목','금','토'].map(w=>`<div class="tt-minical-wday">${w}</div>`).join('');
+  const first=new Date(y,m-1,1), last=new Date(y,m,0);
+  const startDow=first.getDay(), days=last.getDate();
+  let cells='';
+  for(let i=0;i<startDow;i++){
+    const d2=new Date(y,m-1,1-(startDow-i)), k=dateToKey(d2), dw=d2.getDay();
+    cells+=`<div class="tt-minical-day other-m${dw===0?' day-sun':dw===6?' day-sat':''}" onclick="${pickFn}('${k}')">${d2.getDate()}</div>`;
+  }
+  for(let day=1;day<=days;day++){
+    const k=`${y}-${pad(m)}-${pad(day)}`, dw=new Date(y,m-1,day).getDay();
+    const cls=(k===today?' tm-today':'')+(k===selDate&&k!==today?' mc-sel':'')+(dw===0?' day-sun':dw===6?' day-sat':'');
+    cells+=`<div class="tt-minical-day${cls}" onclick="${pickFn}('${k}')">${day}</div>`;
+  }
+  const trail=(startDow+days)%7;
+  if(trail>0) for(let i=1;i<=7-trail;i++){
+    const d2=new Date(y,m,i), k=dateToKey(d2), dw=d2.getDay();
+    cells+=`<div class="tt-minical-day other-m${dw===0?' day-sun':dw===6?' day-sat':''}" onclick="${pickFn}('${k}')">${i}</div>`;
+  }
+  return `
+    <div class="tt-minical-hdr">
+      <button class="tt-btn tt-btn--ghost tt-btn--icon" onclick="${navFn}(-1)">‹</button>
+      <div class="tt-minical-month">${y}년 ${m}월</div>
+      <button class="tt-btn tt-btn--ghost tt-btn--icon" onclick="${navFn}(1)">›</button>
+    </div>
+    <div class="tt-minical-grid">${wdays}${cells}</div>`;
+}
+function buildDashCalHtml(y,m) { return buildCalHtml(y,m,'dashPickDate','dashCalNav'); }
+
+function dashCalNav(d) {
+  _dashCalM+=d;
+  if(_dashCalM<1){_dashCalY--;_dashCalM=12;}
+  if(_dashCalM>12){_dashCalY++;_dashCalM=1;}
+  renderDashCal();
+}
+
+function dashPickDate(k) {
+  ui.dashDate=k; ui.dashMonth=yearMonth(k); saveUI();
+  const pop=document.getElementById('dashCalPop'); if(pop) pop.remove();
+  renderSidebarDateNav(); renderDash();
+}
+
+// Close calendars on outside click
+document.addEventListener('click',()=>{
+  const p1=document.getElementById('dashCalPop'); if(p1) p1.remove();
+  const p2=document.getElementById('sidebarCalPop'); if(p2) p2.remove();
+});
+
+// ─── DASHBOARD — INLINE LIFEGUIDE ───
+function dashLgSave() {
+  const ta=document.getElementById('dashLgTa'); if(!ta) return;
+  lgWriteEntryDate(ui.dashDate||todayKey(),ta.value);
+  showToast('저장되었습니다.','success');
+}
+
+// ─── DASHBOARD — MONTH CALENDAR ───
+function buildDashMonthCal(ym, selDate) {
+  const [y,m]=ym.split('-').map(Number);
+  const today=todayKey();
+  const wdays=['일','월','화','수','목','금','토'].map(w=>`<div class="tt-dash-cal-wday">${w}</div>`).join('');
+  const first=new Date(y,m-1,1), last=new Date(y,m,0);
+  const startDow=first.getDay(), days=last.getDate();
+  let cells='';
+  for(let i=0;i<startDow;i++) {
+    const d2=new Date(y,m-1,1-(startDow-i)), k=dateToKey(d2), dw=d2.getDay();
+    cells+=`<div class="tt-dash-cal-day other-month${dw===0?' day-sun':dw===6?' day-sat':''}" onclick="dashPickDate('${k}')"><div class="tt-dash-cal-num">${d2.getDate()}</div></div>`;
+  }
+  for(let day=1;day<=days;day++) {
+    const k=`${y}-${pad(m)}-${pad(day)}`, dw=new Date(y,m-1,day).getDay();
+    const isHol=!!HOLIDAYS[k];
+    const isSel=k===selDate, isT=k===today;
+    const hasAtt=!!(att.entries[k]?.trim());
+    const hasDuty=duties.tasks.some(t=>t.deadline===k&&!t.done);
+    const hasEv=sched.events.some(ev=>ev.date===k||(ev.endDate&&ev.date<=k&&ev.endDate>=k));
+    const dots=(hasAtt?`<div class="tt-dash-cal-dot dot-att"></div>`:'')+
+               (hasDuty?`<div class="tt-dash-cal-dot dot-duty"></div>`:'')+
+               (hasEv?`<div class="tt-dash-cal-dot dot-ev"></div>`:'');
+    const holLabel=isHol?`<span class="tt-dash-cal-hol">${HOLIDAYS[k]}</span>`:'';
+    let cls=`tt-dash-cal-day${dw===0?' day-sun':dw===6?' day-sat':''}${isHol?' holiday':''}${isSel?' selected':''}${isT?' today':''}`;
+    cells+=`<div class="${cls}" onclick="dashPickDate('${k}')">
+      <div class="tt-dash-cal-num">${day}${holLabel}</div>
+      ${dots?`<div class="tt-dash-cal-dots">${dots}</div>`:''}
+    </div>`;
+  }
+  const trail=(startDow+days)%7;
+  if(trail>0) for(let i=1;i<=7-trail;i++){
+    const d2=new Date(y,m,i), k=dateToKey(d2), dw=d2.getDay();
+    cells+=`<div class="tt-dash-cal-day other-month${dw===0?' day-sun':dw===6?' day-sat':''}" onclick="dashPickDate('${k}')"><div class="tt-dash-cal-num">${i}</div></div>`;
+  }
+  const legend=`<div class="tt-dash-cal-legend">
+    <span><div class="tt-dash-cal-dot dot-att"></div> 출결</span>
+    <span><div class="tt-dash-cal-dot dot-duty"></div> 업무</span>
+    <span><div class="tt-dash-cal-dot dot-ev"></div> 일정</span>
+  </div>`;
+  return `<div class="tt-dash-cal-head">${wdays}</div><div class="tt-dash-cal-body">${cells}</div>${legend}`;
+}
+
+// ═══════════════════════════════════════════════
+//  TIMETABLE (Read-Only)
+// ═══════════════════════════════════════════════
+function renderTT() {
+  const idx=ui.ttWeekIdx??findCurrentWeekIdx();
+  const week=WEEKS[Math.max(0,Math.min(WEEKS.length-1,idx))];
+  const opts=WEEKS.map((w,i)=>`<option value="${i}" ${i===idx?'selected':''}>${w.label}</option>`).join('');
+
+  document.getElementById('tt-root').innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px">
+      <div><div class="tt-page-title">📅 시간표</div><div class="tt-page-sub">2026년 2학기 · 읽기 전용</div></div>
+      <a href="timetable.html" target="_blank" class="tt-btn tt-btn--primary">편집기 열기 ↗</a>
+    </div>
+    <div class="tt-card">
+      <div class="tt-card-header">
+        <div style="display:flex;align-items:center;gap:8px">
+          <button class="tt-btn tt-btn--ghost tt-btn--icon" onclick="ttNav(-1)">‹</button>
+          <select class="tt-select" style="width:auto" onchange="ttSelect(+this.value)">${opts}</select>
+          <button class="tt-btn tt-btn--ghost tt-btn--icon" onclick="ttNav(1)">›</button>
+        </div>
+        <button class="tt-btn tt-btn--ghost tt-btn--sm" onclick="ttToday()">오늘 주차</button>
+      </div>
+      <div class="tt-card-body" style="overflow-x:auto">${buildTTGrid(week)}</div>
+    </div>`;
+}
+
+function buildTTGrid(week) {
+  const hCells=week.dates.map(date=>{
+    const d=parseKey(date), dow=DAY_SHORT[d.getDay()-1]||'?';
+    const hol=HOLIDAYS[date];
+    const isT=isToday(date);
+    return `<th class="${hol?'hol':''}${isT?' cur':''}">${dow}(${d.getMonth()+1}/${d.getDate()})${hol?`<br><span style="font-size:12px;font-weight:400">${hol}</span>`:''}${isT?'<br><span style="font-size:12px;font-weight:400;color:rgba(255,255,255,0.8)">오늘</span>':''}</th>`;
+  }).join('');
+  const rows=PERIODS.map((_, i)=>{
+    const cells=week.dates.map(date=>{
+      const cell=ttData[`${date}__${i}`];
+      const bg=cell&&cell.color?cell.color:(HOLIDAYS[date]?'#FFF9C4':'#fff');
+      return `<td class="${HOLIDAYS[date]?'hol':''}" style="background:${bg}">${esc(cell?cell.content||'':'')}</td>`;
+    }).join('');
+    return `<tr><td class="tt-tt-period">${PERIODS[i]}</td>${cells}</tr>`;
+  }).join('');
+  return `<table class="tt-tt-grid"><thead><tr><th>교시</th>${hCells}</tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+function ttNav(d) { ui.ttWeekIdx=Math.max(0,Math.min(WEEKS.length-1,(ui.ttWeekIdx??findCurrentWeekIdx())+d)); saveUI(); renderTT(); }
+function ttSelect(v) { ui.ttWeekIdx=v; saveUI(); renderTT(); }
+function ttToday()  { ui.ttWeekIdx=findCurrentWeekIdx(); saveUI(); renderTT(); }
+
+// ═══════════════════════════════════════════════
+//  ATTENDANCE (month calendar + free-text diary)
+// ═══════════════════════════════════════════════
+function renderAtt() {
+  const selDate=ui.attDate||todayKey();
+  const selMonth=ui.attMonth||yearMonth(selDate);
+  const prevM=prevMonthKey(selMonth), nextM=nextMonthKey(selMonth);
+  const entry=att.entries[selDate]||'';
+  const calHtml=buildFullMonthCal(selMonth, selDate, att.entries, 'attGo');
+
+  document.getElementById('att-root').innerHTML=`
+    <div style="margin-bottom:12px">
+      <div class="tt-page-title">✅ 출결</div>
+      <div class="tt-page-sub">날짜별 기록 — 자동 저장</div>
+    </div>
+    <div class="tt-card" style="margin-bottom:16px">
+      <div class="tt-card-header">
+        <button class="tt-btn tt-btn--ghost tt-btn--sm" onclick="attMonthNav('${prevM}')">‹ ${fmtYM(prevM)}</button>
+        <div class="tt-month-nav-cur">${fmtYMFull(selMonth)}</div>
+        <button class="tt-btn tt-btn--ghost tt-btn--sm" onclick="attMonthNav('${nextM}')">${fmtYM(nextM)} ›</button>
+      </div>
+      <div class="tt-card-body">${calHtml}</div>
+    </div>
+    <div class="tt-lg-editor">
+      <div class="tt-lg-date-hdr">${fmtLong(selDate)}</div>
+      <textarea id="attTa" class="tt-lg-ta"
+        >${esc(entry)}</textarea>
+      <div class="tt-lg-chars" id="attChars">${entry.length}자</div>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button class="tt-btn tt-btn--primary" onclick="attSaveNow()">💾 저장</button>
+        <button class="tt-btn tt-btn--ghost" onclick="attDel()">🗑 삭제</button>
+      </div>
+    </div>`;
+
+  const ta=document.getElementById('attTa');
+  if(ta) {
+    const capturedDate=selDate;
+    const autoSave=debounce(txt=>{ attWriteEntryDate(capturedDate,txt); },700);
+    ta.addEventListener('input',()=>{
+      const cnt=document.getElementById('attChars');
+      if(cnt) cnt.textContent=ta.value.length+'자';
+      autoSave(ta.value);
+    });
+  }
+}
+
+function attWriteEntryDate(date,text) {
+  att={...att,entries:{...att.entries,[date]:text}}; saveAtt();
+}
+function attGo(k) {
+  ui.attDate=k; ui.attMonth=yearMonth(k); saveUI(); renderAtt();
+}
+function attMonthNav(ym) {
+  ui.attMonth=ym;
+  if(yearMonth(ui.attDate||todayKey())!==ym) {
+    const [y2,m2]=ym.split('-').map(Number);
+    ui.attDate=`${y2}-${pad(m2)}-01`;
+  }
+  saveUI(); renderAtt();
+}
+function attSaveNow() {
+  const ta=document.getElementById('attTa'); if(!ta) return;
+  attWriteEntryDate(ui.attDate||todayKey(),ta.value);
+  showToast('저장되었습니다.','success');
+}
+function attDel() {
+  const date=ui.attDate||todayKey();
+  const {[date]:_,...rest}=att.entries;
+  att={...att,entries:rest}; saveAtt(); showToast('삭제되었습니다.'); renderAtt();
+}
+function attNav(d) { ui.attDate=addDays(ui.attDate||todayKey(),d); saveUI(); renderAtt(); }
+function attNavToday() { ui.attDate=todayKey(); ui.attMonth=yearMonth(todayKey()); saveUI(); renderAtt(); }
+
+// ═══════════════════════════════════════════════
+//  LIFE GUIDANCE (month calendar + free-text diary)
+// ═══════════════════════════════════════════════
+function renderLg() {
+  const selDate=ui.lgDate||todayKey();
+  const selMonth=ui.lgMonth||yearMonth(selDate);
+  const prevM=prevMonthKey(selMonth), nextM=nextMonthKey(selMonth);
+  const entry=lg.entries[selDate]||'';
+  const calHtml=buildFullMonthCal(selMonth, selDate, lg.entries, 'lgGo');
+
+  document.getElementById('lg-root').innerHTML=`
+    <div style="margin-bottom:12px">
+      <div class="tt-page-title">📓 생활지도</div>
+      <div class="tt-page-sub">날짜별 일지 — 자동 저장</div>
+    </div>
+    <div class="tt-card" style="margin-bottom:16px">
+      <div class="tt-card-header">
+        <button class="tt-btn tt-btn--ghost tt-btn--sm" onclick="lgMonthNav('${prevM}')">‹ ${fmtYM(prevM)}</button>
+        <div class="tt-month-nav-cur">${fmtYMFull(selMonth)}</div>
+        <button class="tt-btn tt-btn--ghost tt-btn--sm" onclick="lgMonthNav('${nextM}')">${fmtYM(nextM)} ›</button>
+      </div>
+      <div class="tt-card-body">${calHtml}</div>
+    </div>
+    <div class="tt-lg-editor">
+      <div class="tt-lg-date-hdr">${fmtLong(selDate)}</div>
+      <textarea id="lgTa" class="tt-lg-ta">${esc(entry)}</textarea>
+      <div class="tt-lg-chars" id="lgChars">${entry.length}자</div>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button class="tt-btn tt-btn--primary" onclick="lgSaveNow()">💾 저장</button>
+        <button class="tt-btn tt-btn--ghost" onclick="lgDel()">🗑 삭제</button>
+      </div>
+    </div>`;
+
+  const ta=document.getElementById('lgTa');
+  if(ta) {
+    const capturedDate=selDate;
+    const autoSave=debounce(txt=>{ lgWriteEntryDate(capturedDate,txt); },700);
+    ta.addEventListener('input',()=>{
+      const cnt=document.getElementById('lgChars');
+      if(cnt) cnt.textContent=ta.value.length+'자';
+      autoSave(ta.value);
+    });
+  }
+}
+
+function lgWriteEntry(text) {
+  const date=ui.lgDate||todayKey();
+  lg={...lg,entries:{...lg.entries,[date]:text}}; saveLg();
+}
+function lgWriteEntryDate(date,text) {
+  lg={...lg,entries:{...lg.entries,[date]:text}}; saveLg();
+}
+
+function lgGo(k) { ui.lgDate=k; ui.lgMonth=yearMonth(k); saveUI(); renderLg(); }
+function lgMonthNav(ym) {
+  ui.lgMonth=ym;
+  if(yearMonth(ui.lgDate||todayKey())!==ym) {
+    const [y2,m2]=ym.split('-').map(Number);
+    ui.lgDate=`${y2}-${pad(m2)}-01`;
+  }
+  saveUI(); renderLg();
+}
+function lgSaveNow() {
+  const ta=document.getElementById('lgTa'); if(ta) lgWriteEntry(ta.value);
+  showToast('저장되었습니다.','success');
+}
+function lgDel() {
+  const date=ui.lgDate||todayKey();
+  const {[date]:_,...rest}=lg.entries;
+  lg={...lg,entries:rest}; saveLg(); showToast('삭제되었습니다.');
+  renderLg();
+}
+// ═══════════════════════════════════════════════
+//  DUTIES
+// ═══════════════════════════════════════════════
+function renderDuties() {
+  const view=ui.dutiesView||'list';
+  document.getElementById('duties-root').innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+      <div><div class="tt-page-title">📋 업무</div><div class="tt-page-sub">할일 목록 · 마감일 관리</div></div>
+      <button class="tt-btn tt-btn--primary" onclick="openDutyModal(null)">+ 업무 추가</button>
+    </div>
+    <div class="tt-view-pills">
+      <button class="tt-view-pill ${view==='list'?'active':''}" onclick="setDView('list')">📋 목록</button>
+      <button class="tt-view-pill ${view==='weekly'?'active':''}" onclick="setDView('weekly')">📆 주간</button>
+    </div>
+    <div id="duties-inner"></div>`;
+  view==='list'?renderDList():renderDWeekly();
+}
+
+function renderDList() {
+  const today=todayKey();
+  const sorted=[...duties.tasks].sort((a,b)=>{
+    if(a.done!==b.done) return a.done?1:-1;
+    if(!a.deadline&&!b.deadline) return 0;
+    if(!a.deadline) return 1; if(!b.deadline) return -1;
+    return a.deadline<b.deadline?-1:1;
+  });
+  const el=document.getElementById('duties-inner');
+  if(!sorted.length){el.innerHTML=`<div class="tt-empty"><div class="tt-empty-icon">🎉</div><div class="tt-empty-text">업무 없음! + 업무 추가로 시작하세요.</div></div>`;return;}
+  el.innerHTML=sorted.map(t=>{
+    const ov=!t.done&&t.deadline&&t.deadline<today;
+    const soon=!ov&&!t.done&&t.deadline&&t.deadline<=addDays(today,3);
+    const dlBadge=t.deadline?`<span class="tt-badge ${ov?'tt-badge--red':soon?'tt-badge--orange':'tt-badge--gray'}">${fmtShort(t.deadline)}</span>`:'';
+    const priBadge=t.priority&&t.priority!=='normal'?`<span class="tt-badge ${t.priority==='high'?'tt-badge--red':'tt-badge--gray'}">${PRI_LABEL[t.priority]}</span>`:'';
+    return `<div class="tt-task-card${t.done?' done':''}">
+      <div class="tt-task-check" onclick="toggleDone('${t.id}')">${t.done?'<span style="color:#fff;font-size:15px">✓</span>':''}</div>
+      <div class="tt-task-body">
+        <div class="tt-task-title">${esc(t.title)}</div>
+        ${t.detail?`<div class="tt-task-detail">${esc(t.detail)}</div>`:''}
+        <div class="tt-task-meta">${dlBadge}${priBadge}</div>
+      </div>
+      <div class="tt-task-actions">
+        <button class="tt-btn tt-btn--ghost tt-btn--icon tt-btn--sm" onclick="openDutyModal('${t.id}')">✏️</button>
+        <button class="tt-btn tt-btn--ghost tt-btn--icon tt-btn--sm" onclick="delDuty('${t.id}')">🗑</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderDWeekly() {
+  const mon=ui.dutiesWeek||weekMon(todayKey());
+  const days=Array.from({length:5},(_,i)=>addDays(mon,i));
+  const today=todayKey();
+  const cols=days.map((day,di)=>{
+    const tasks=duties.tasks.filter(t=>t.deadline===day);
+    const pills=tasks.map(t=>`<div class="tt-weekly-task ev-${t.done?'gray':'blue'}" onclick="openDutyModal('${t.id}')">${esc(t.title)}</div>`).join('');
+    return `<div class="tt-weekly-col${isToday(day)?' today':''}">
+      <div class="tt-weekly-col-hdr">${DAY_SHORT[di]} ${parseKey(day).getDate()}일</div>
+      ${pills||'<div style="font-size:14px;color:var(--ios-gray3);text-align:center;padding-top:8px">없음</div>'}
+    </div>`;
+  }).join('');
+  document.getElementById('duties-inner').innerHTML=`
+    <div class="tt-weekly-nav">
+      <button class="tt-btn tt-btn--ghost tt-btn--icon" onclick="dWeekNav(-7)">‹</button>
+      <div class="tt-weekly-range">${fmtShort(mon)} ~ ${fmtShort(days[4])}</div>
+      <button class="tt-btn tt-btn--ghost tt-btn--icon" onclick="dWeekNav(7)">›</button>
+      <button class="tt-btn tt-btn--ghost tt-btn--sm" onclick="dWeekNav(0)">이번 주</button>
+    </div>
+    <div class="tt-weekly-grid">${cols}</div>`;
+}
+
+function setDView(v) { ui.dutiesView=v; saveUI(); renderDuties(); }
+function dWeekNav(d) {
+  if(d===0){ui.dutiesWeek=weekMon(todayKey());}
+  else ui.dutiesWeek=addDays(ui.dutiesWeek||weekMon(todayKey()),d);
+  saveUI(); renderDWeekly();
+}
+function toggleDone(id) {
+  duties={...duties,tasks:duties.tasks.map(t=>t.id===id?{...t,done:!t.done}:t)};
+  saveDu(); renderDuties();
+}
+function delDuty(id) {
+  if(!confirm('삭제할까요?')) return;
+  duties={...duties,tasks:duties.tasks.filter(t=>t.id!==id)}; saveDu(); renderDuties(); showToast('삭제되었습니다.');
+}
+function openDutyModal(id) {
+  const t=id?duties.tasks.find(x=>x.id===id):null;
+  openModal(`
+    <div class="tt-modal-head">
+      <div class="tt-modal-title">${t?'업무 편집':'+ 업무 추가'}</div>
+      <button class="tt-modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="tt-modal-body">
+      <div class="tt-form-group"><label class="tt-form-label">업무 제목 *</label>
+        <input id="dm-t" class="tt-input" maxlength="80" value="${esc(t?.title||'')}"></div>
+      <div class="tt-form-group"><label class="tt-form-label">상세 메모</label>
+        <textarea id="dm-d" class="tt-textarea" style="min-height:60px">${esc(t?.detail||'')}</textarea></div>
+      <div class="tt-form-row">
+        <div class="tt-form-group"><label class="tt-form-label">마감일</label>
+          <input id="dm-dl" class="tt-input" type="date" value="${t?.deadline||''}"></div>
+        <div class="tt-form-group"><label class="tt-form-label">우선순위</label>
+          <select id="dm-p" class="tt-select">
+            <option value="high"   ${t?.priority==='high'?'selected':''}>높음</option>
+            <option value="normal" ${!t?.priority||t?.priority==='normal'?'selected':''}>보통</option>
+            <option value="low"    ${t?.priority==='low'?'selected':''}>낮음</option>
+          </select></div>
+      </div>
+    </div>
+    <div class="tt-modal-foot">
+      ${t?`<button class="tt-btn tt-btn--danger" onclick="delDutyModal('${t.id}')">삭제</button>`:''}
+      <button class="tt-btn tt-btn--ghost" onclick="closeModal()">취소</button>
+      <button class="tt-btn tt-btn--primary" onclick="saveDutyModal(${id?`'${id}'`:'null'})">저장</button>
+    </div>`);
+  setTimeout(()=>document.getElementById('dm-t')?.focus(),60);
+}
+function saveDutyModal(id) {
+  const title=(document.getElementById('dm-t')?.value||'').trim();
+  const detail=(document.getElementById('dm-d')?.value||'').trim();
+  const dl=document.getElementById('dm-dl')?.value||null;
+  const pri=document.getElementById('dm-p')?.value||'normal';
+  if(!title) return showToast('제목을 입력해주세요.','danger');
+  if(id&&id!=='null') {
+    duties={...duties,tasks:duties.tasks.map(t=>t.id===id?{...t,title,detail,deadline:dl,priority:pri}:t)};
+  } else {
+    duties={...duties,tasks:[...duties.tasks,{id:genId(),title,detail,deadline:dl,priority:pri,done:false,createdAt:new Date().toISOString()}]};
+  }
+  saveDu(); closeModal(); renderDuties(); showToast('저장되었습니다.','success');
+}
+function delDutyModal(id) {
+  if(!confirm('삭제할까요?')) return;
+  duties={...duties,tasks:duties.tasks.filter(t=>t.id!==id)};
+  saveDu(); closeModal(); renderDuties(); showToast('삭제되었습니다.');
+}
+
+// ═══════════════════════════════════════════════
+//  SCHEDULE
+// ═══════════════════════════════════════════════
+function renderSched() {
+  const y=ui.schedY||new Date().getFullYear();
+  const m=ui.schedM||new Date().getMonth()+1;
+  document.getElementById('sched-root').innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+      <div><div class="tt-page-title">🗓 일정표</div><div class="tt-page-sub">월간 일정 관리</div></div>
+      <button class="tt-btn tt-btn--primary" onclick="openEvModal(null,'${y}-${pad(m)}-01')">+ 일정 추가</button>
+    </div>
+    <div class="tt-card">
+      <div class="tt-card-header">
+        <div class="tt-cal-nav">
+          <button class="tt-btn tt-btn--ghost tt-btn--icon" onclick="schedNav(-1)">‹</button>
+          <div class="tt-cal-month">${fmtMonth(y,m)}</div>
+          <button class="tt-btn tt-btn--ghost tt-btn--icon" onclick="schedNav(1)">›</button>
+        </div>
+        <button class="tt-btn tt-btn--ghost tt-btn--sm" onclick="schedToday()">이번 달</button>
+      </div>
+      <div class="tt-card-body">
+        <div class="tt-cal-weekdays"><span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span></div>
+        <div class="tt-cal-grid">${buildCalGrid(y,m)}</div>
+      </div>
+    </div>`;
+}
+
+function buildCalGrid(y,m) {
+  const first=new Date(y,m-1,1), last=new Date(y,m,0);
+  const startDow=first.getDay(), days=last.getDate();
+  const today=todayKey();
+  let cells='';
+  for(let i=0;i<startDow;i++){const d=new Date(y,m-1,1-(startDow-i));cells+=buildCalDay(dateToKey(d),true);}
+  for(let d=1;d<=days;d++){cells+=buildCalDay(`${y}-${pad(m)}-${pad(d)}`,false);}
+  const trail=(startDow+days)%7;
+  if(trail>0) for(let i=1;i<=7-trail;i++){const d=new Date(y,m,i);cells+=buildCalDay(dateToKey(d),true);}
+  return cells;
+}
+
+function buildCalDay(key,other) {
+  const d=parseKey(key), dw=d.getDay(), num=d.getDate();
+  const evs=getEventsOnDate(key);
+  const isT=isToday(key);
+  const evHtml=evs.slice(0,3).map(ev=>`<div class="tt-ev-chip ev-${ev.color}" onclick="event.stopPropagation();openEvModal('${ev.id}','${key}')">${esc(ev.title)}</div>`).join('')+(evs.length>3?`<div style="font-size:13px;color:var(--text-muted)">외 ${evs.length-3}건</div>`:'');
+  const numHtml=isT?`<div class="tt-cal-day-num"><span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;background:var(--accent);color:var(--accent-text);border-radius:50%">${num}</span></div>`:`<div class="tt-cal-day-num">${num}</div>`;
+  return `<div class="tt-cal-day${other?' other-month':''}${isT?' today':''}${dw===0?' day-sun':''}${dw===6?' day-sat':''}" onclick="openEvModal(null,'${key}')">
+    ${numHtml}${evHtml}
+  </div>`;
+}
+
+function getEventsOnDate(key) {
+  return sched.events.filter(ev=>{
+    if(!ev.endDate) return ev.date===key;
+    return key>=ev.date&&key<=ev.endDate;
+  });
+}
+
+function schedNav(d) {
+  let y=ui.schedY||new Date().getFullYear(), m=ui.schedM||new Date().getMonth()+1;
+  m+=d;
+  if(m<1){y--;m=12;}if(m>12){y++;m=1;}
+  ui.schedY=y;ui.schedM=m;saveUI();renderSched();
+}
+function schedToday() { ui.schedY=new Date().getFullYear();ui.schedM=new Date().getMonth()+1;saveUI();renderSched(); }
+
+function openEvModal(id,prefill) {
+  const ev=id?sched.events.find(e=>e.id===id):null;
+  const swatches=EVENT_COLORS.map(c=>
+    `<div data-color="${c}" class="ev-swatch ev-${c}" onclick="pickEvColor('${c}',this)"
+      style="width:28px;height:28px;border-radius:50%;cursor:pointer;border:3px solid ${(ev?.color||'blue')===c?'#333':'transparent'};flex-shrink:0"></div>`
+  ).join('');
+  openModal(`
+    <div class="tt-modal-head">
+      <div class="tt-modal-title">${ev?'일정 편집':'+ 일정 추가'}</div>
+      <button class="tt-modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="tt-modal-body">
+      <div class="tt-form-group"><label class="tt-form-label">일정 제목 *</label>
+        <input id="em-t" class="tt-input" maxlength="80" value="${esc(ev?.title||'')}"></div>
+      <div class="tt-form-row">
+        <div class="tt-form-group"><label class="tt-form-label">시작일 *</label>
+          <input id="em-d" class="tt-input" type="date" value="${ev?.date||prefill||todayKey()}"></div>
+        <div class="tt-form-group"><label class="tt-form-label">종료일 (선택)</label>
+          <input id="em-e" class="tt-input" type="date" value="${ev?.endDate||''}"></div>
+      </div>
+      <div class="tt-form-group"><label class="tt-form-label">색상</label>
+        <div id="evSwatches" style="display:flex;gap:8px;flex-wrap:wrap;padding:4px 0">${swatches}</div>
+        <input type="hidden" id="em-c" value="${ev?.color||'blue'}">
+      </div>
+      <div class="tt-form-group"><label class="tt-form-label">메모</label>
+        <textarea id="em-n" class="tt-textarea" style="min-height:60px">${esc(ev?.note||'')}</textarea></div>
+    </div>
+    <div class="tt-modal-foot">
+      ${ev?`<button class="tt-btn tt-btn--danger" onclick="delEvModal('${ev.id}')">삭제</button>`:''}
+      <button class="tt-btn tt-btn--ghost" onclick="closeModal()">취소</button>
+      <button class="tt-btn tt-btn--primary" onclick="saveEvModal(${id?`'${id}'`:'null'})">저장</button>
+    </div>`);
+  setTimeout(()=>document.getElementById('em-t')?.focus(),60);
+}
+function pickEvColor(c,el) {
+  document.getElementById('em-c').value=c;
+  document.querySelectorAll('#evSwatches .ev-swatch').forEach(d=>{d.style.border=`3px solid ${d.dataset.color===c?'#333':'transparent'}`;});
+}
+function saveEvModal(id) {
+  const title=(document.getElementById('em-t')?.value||'').trim();
+  const date=document.getElementById('em-d')?.value;
+  const endDate=document.getElementById('em-e')?.value||null;
+  const color=document.getElementById('em-c')?.value||'blue';
+  const note=(document.getElementById('em-n')?.value||'').trim();
+  if(!title) return showToast('제목을 입력해주세요.','danger');
+  if(!date)  return showToast('시작일을 입력해주세요.','danger');
+  if(id&&id!=='null'){
+    sched={...sched,events:sched.events.map(e=>e.id===id?{...e,title,date,endDate,color,note}:e)};
+  } else {
+    sched={...sched,events:[...sched.events,{id:genId(),title,date,endDate,color,note}]};
+  }
+  saveSc(); closeModal(); renderSched(); showToast('저장되었습니다.','success');
+}
+function delEvModal(id) {
+  if(!confirm('삭제할까요?')) return;
+  sched={...sched,events:sched.events.filter(e=>e.id!==id)};
+  saveSc(); closeModal(); renderSched(); showToast('삭제되었습니다.');
+}
+
+// ═══════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════
+function init() {
+  loadAll();
+  tickClock(); setInterval(tickClock,30000);
+  renderSidebarPhoto();
+  renderSidebarDateNav();
+  navigateTo(ui.sec||'dashboard');
+}
+
+init();
+</script>
+</body>
+</html>

@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>시간표 위젯</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Malgun Gothic', '맑은 고딕', sans-serif;
+      background: transparent;
+      color: white;
+      margin: 0; padding: 0;
+    }
+
+    /* ── Corner positioning ── */
+    .widget {
+      position: fixed;
+      /* default: bottom-right — overridden by JS from saved setting */
+      bottom: var(--wy, 20px);
+      right:  var(--wx, 20px);
+      width: 340px;
+      background: rgba(8, 16, 36, 0.80);
+      backdrop-filter: blur(18px) saturate(1.4);
+      -webkit-backdrop-filter: blur(18px) saturate(1.4);
+      border: 1px solid rgba(255, 255, 255, 0.10);
+      border-radius: 18px;
+      padding: 16px 18px 14px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255,255,255,0.07);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* ── Header ── */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    .header-left {}
+    .date-line { font-size: 12px; color: rgba(255,255,255,0.50); letter-spacing: 0.3px; }
+    .day-line  { font-size: 20px; font-weight: 800; letter-spacing: -0.3px; margin-top: 1px; }
+    .clock-wrap { text-align: right; }
+    .clock-hm  { font-size: 30px; font-weight: 200; letter-spacing: 2px; line-height: 1; }
+    .clock-sec { font-size: 14px; font-weight: 300; color: rgba(255,255,255,0.40); }
+
+    /* ── Current period card ── */
+    .status-card {
+      background: rgba(59, 130, 246, 0.14);
+      border: 1px solid rgba(59, 130, 246, 0.30);
+      border-radius: 11px;
+      padding: 10px 13px;
+    }
+    .status-card.break-time {
+      background: rgba(34, 197, 94, 0.12);
+      border-color: rgba(34, 197, 94, 0.28);
+    }
+    .status-card.after-school {
+      background: rgba(100, 116, 139, 0.14);
+      border-color: rgba(100, 116, 139, 0.25);
+    }
+    .status-label { font-size: 10px; color: rgba(255,255,255,0.48); font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; margin-bottom: 3px; }
+    .status-main  { font-size: 17px; font-weight: 700; }
+    .status-sub   { font-size: 11px; color: rgba(255,255,255,0.55); margin-top: 3px; }
+    .progress-track {
+      margin-top: 8px;
+      height: 3px;
+      background: rgba(255,255,255,0.12);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #3b82f6, #60a5fa);
+      border-radius: 2px;
+      transition: width 30s linear;
+    }
+
+    /* ── Section label ── */
+    .section-label {
+      font-size: 10px;
+      color: rgba(255,255,255,0.38);
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 5px;
+    }
+
+    /* ── Today's schedule ── */
+    .today-list { display: flex; flex-direction: column; gap: 2px; }
+    .period-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 8px;
+      border-radius: 8px;
+    }
+    .period-row.is-current {
+      background: rgba(59, 130, 246, 0.22);
+      border: 1px solid rgba(59, 130, 246, 0.35);
+    }
+    .period-row.is-past { opacity: 0.38; }
+    .period-idx {
+      font-size: 10px;
+      color: rgba(255,255,255,0.40);
+      width: 24px;
+      flex-shrink: 0;
+      text-align: right;
+    }
+    .period-subject { font-size: 13px; font-weight: 700; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .period-subject.empty { font-weight: 400; color: rgba(255,255,255,0.28); font-style: italic; }
+    .period-time { font-size: 10px; color: rgba(255,255,255,0.35); flex-shrink: 0; }
+    .now-badge {
+      font-size: 9px;
+      background: #3b82f6;
+      color: white;
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-weight: 800;
+      flex-shrink: 0;
+    }
+    .cell-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    /* ── Divider ── */
+    .divider { height: 1px; background: rgba(255,255,255,0.07); }
+
+    /* ── Week mini table ── */
+    .week-mini {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+    .week-mini th {
+      font-size: 10px;
+      color: rgba(255,255,255,0.40);
+      text-align: center;
+      padding: 2px 0 4px;
+      font-weight: 700;
+    }
+    .week-mini th.today-head { color: #60a5fa; }
+    .week-mini td {
+      font-size: 10px;
+      text-align: center;
+      padding: 2px 1px;
+      color: rgba(255,255,255,0.65);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .week-mini td.today-col { color: white; font-weight: 700; }
+    .week-mini td.empty-cell { color: rgba(255,255,255,0.20); }
+    .week-mini td.current-period-cell {
+      background: rgba(59,130,246,0.25);
+      border-radius: 3px;
+    }
+    .week-mini .period-head {
+      font-size: 9px;
+      color: rgba(255,255,255,0.25);
+      text-align: right;
+      padding-right: 4px;
+    }
+
+    /* ── Footer ── */
+    .footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: auto;
+    }
+    .week-name { font-size: 11px; color: rgba(255,255,255,0.35); }
+    .sync-btn {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.15);
+      color: rgba(255,255,255,0.60);
+      padding: 5px 11px;
+      border-radius: 7px;
+      font-size: 11px;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.15s, color 0.15s;
+    }
+    .sync-btn:hover { background: rgba(255,255,255,0.15); color: white; }
+
+    /* ── Overlay / Sync modal ── */
+    .overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      z-index: 50;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .overlay.open { display: flex; }
+    .sync-modal {
+      background: #0f1d38;
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 16px;
+      padding: 22px;
+      width: 100%;
+      max-width: 360px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+    }
+    .sync-modal h3 { font-size: 16px; font-weight: 800; margin-bottom: 6px; }
+    .sync-steps {
+      font-size: 12px;
+      color: rgba(255,255,255,0.58);
+      line-height: 1.7;
+      margin-bottom: 14px;
+      background: rgba(255,255,255,0.04);
+      border-radius: 8px;
+      padding: 10px 12px;
+    }
+    .sync-steps b { color: #60a5fa; }
+    .sync-textarea {
+      width: 100%;
+      height: 90px;
+      background: rgba(0,0,0,0.35);
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 8px;
+      color: rgba(255,255,255,0.85);
+      font-size: 11px;
+      padding: 9px 11px;
+      resize: none;
+      font-family: 'Consolas', monospace;
+      margin-bottom: 13px;
+    }
+    .sync-textarea:focus { outline: none; border-color: #3b82f6; }
+    .sync-textarea::placeholder { color: rgba(255,255,255,0.25); }
+    .sync-actions { display: flex; gap: 8px; justify-content: flex-end; }
+    .sync-actions button {
+      padding: 7px 17px;
+      border: none;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .btn-cancel { background: rgba(255,255,255,0.10); color: rgba(255,255,255,0.75); }
+    .btn-apply  { background: #3b82f6; color: white; }
+
+    /* ── Settings modal ── */
+    .settings-modal {
+      background: #0f1d38;
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 16px;
+      padding: 22px;
+      width: 100%;
+      max-width: 340px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+    }
+    .settings-modal h3 { font-size: 15px; font-weight: 800; margin-bottom: 14px; }
+    .setting-row { margin-bottom: 14px; }
+    .setting-label { font-size: 11px; color: rgba(255,255,255,0.50); margin-bottom: 6px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; }
+
+    /* Corner picker */
+    .corner-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      background: rgba(0,0,0,0.25);
+      border-radius: 10px;
+      padding: 10px;
+    }
+    .corner-btn {
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.12);
+      color: rgba(255,255,255,0.65);
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 12px;
+      font-family: inherit;
+      cursor: pointer;
+      text-align: center;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .corner-btn:hover { background: rgba(255,255,255,0.13); }
+    .corner-btn.active { background: rgba(59,130,246,0.30); border-color: #3b82f6; color: white; font-weight: 700; }
+    .period-times-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+    .period-time-item { display: flex; align-items: center; gap: 5px; font-size: 11px; }
+    .period-time-item label { color: rgba(255,255,255,0.45); width: 28px; flex-shrink: 0; }
+    .time-input {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 5px;
+      color: white;
+      font-size: 11px;
+      padding: 4px 6px;
+      font-family: inherit;
+      width: 70px;
+    }
+    .time-input:focus { outline: none; border-color: #3b82f6; }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: rgba(30,50,90,0.95);
+      border: 1px solid rgba(59,130,246,0.4);
+      border-radius: 8px;
+      padding: 8px 16px;
+      font-size: 12px;
+      opacity: 0;
+      transition: opacity 0.25s, transform 0.25s;
+      pointer-events: none;
+      white-space: nowrap;
+      z-index: 200;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* ── No data state ── */
+    .no-data {
+      text-align: center;
+      padding: 20px 10px;
+      color: rgba(255,255,255,0.35);
+      font-size: 12px;
+      line-height: 1.7;
+    }
+    .no-data-icon { font-size: 32px; margin-bottom: 10px; }
+  </style>
+</head>
+<body>
+
+<div class="widget">
+  <!-- Header -->
+  <div class="header">
+    <div class="header-left">
+      <div class="date-line" id="dateLine">날짜 로딩중...</div>
+      <div class="day-line"  id="dayLine">--</div>
+    </div>
+    <div class="clock-wrap">
+      <div class="clock-hm">
+        <span id="clockH">--</span>:<span id="clockM">--</span>
+      </div>
+      <div class="clock-sec">:<span id="clockS">--</span></div>
+    </div>
+  </div>
+
+  <!-- Current status -->
+  <div class="status-card" id="statusCard">
+    <div class="status-label" id="statusLabel">현재</div>
+    <div class="status-main"  id="statusMain">로딩중...</div>
+    <div class="status-sub"   id="statusSub"></div>
+    <div class="progress-track" id="progressTrack" style="display:none">
+      <div class="progress-fill" id="progressFill" style="width:0%"></div>
+    </div>
+  </div>
+
+  <!-- Today schedule -->
+  <div>
+    <div class="section-label">오늘의 시간표</div>
+    <div class="today-list" id="todayList"></div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- Week mini -->
+  <div>
+    <div class="section-label" id="weekLabel">이번 주</div>
+    <div style="overflow-x:auto">
+      <table class="week-mini" id="weekMini"></table>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <div class="week-name" id="weekName"></div>
+    <div style="display:flex;gap:6px">
+      <button class="sync-btn" onclick="openSettings()" title="시간표 시각 설정">⚙</button>
+      <button class="sync-btn" onclick="openSync()">⟳ 데이터 동기화</button>
+    </div>
+  </div>
+</div>
+
+<!-- Sync overlay -->
+<div class="overlay" id="syncOverlay">
+  <div class="sync-modal">
+    <h3>📋 데이터 동기화</h3>
+    <div class="sync-steps">
+      ① 브라우저에서 <b>timetable.html</b> 열기<br>
+      ② 우측 상단 <b>📲 위젯 복사</b> 버튼 클릭<br>
+      ③ 아래 칸에 붙여넣기 (Ctrl+V)
+    </div>
+    <textarea class="sync-textarea" id="syncInput" placeholder="여기에 붙여넣기 하세요..."></textarea>
+    <div class="sync-actions">
+      <button class="btn-cancel" onclick="closeSync()">취소</button>
+      <button class="btn-apply"  onclick="applySync()">적용</button>
+    </div>
+  </div>
+</div>
+
+<!-- Settings overlay -->
+<div class="overlay" id="settingsOverlay">
+  <div class="settings-modal">
+    <h3>⚙ 위젯 설정</h3>
+
+    <div class="setting-row">
+      <div class="setting-label">위젯 위치 (화면 모서리)</div>
+      <div class="corner-grid">
+        <button class="corner-btn" data-corner="top-left"     onclick="selectCorner(this)">↖ 왼쪽 위</button>
+        <button class="corner-btn" data-corner="top-right"    onclick="selectCorner(this)">↗ 오른쪽 위</button>
+        <button class="corner-btn" data-corner="bottom-left"  onclick="selectCorner(this)">↙ 왼쪽 아래</button>
+        <button class="corner-btn" data-corner="bottom-right" onclick="selectCorner(this)">↘ 오른쪽 아래</button>
+      </div>
+    </div>
+
+    <div class="setting-row">
+      <div class="setting-label">각 교시 시작~종료 시각 (HH:MM)</div>
+      <div class="period-times-grid" id="periodTimesGrid"></div>
+    </div>
+
+    <div class="sync-actions" style="margin-top:14px">
+      <button class="btn-cancel" onclick="closeSettings()">취소</button>
+      <button class="btn-apply"  onclick="saveSettings()">저장</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ──────────────────────────────────────────
+//  Constants (must match timetable.html)
+// ──────────────────────────────────────────
+const STORAGE_KEY  = 'school_timetable_2026';
+const SETTINGS_KEY = 'widget_settings_v1';
+
+const WEEKS = [
+  { label:'3월 1주', dates:['2026-03-02','2026-03-03','2026-03-04','2026-03-05','2026-03-06'] },
+  { label:'3월 2주', dates:['2026-03-09','2026-03-10','2026-03-11','2026-03-12','2026-03-13'] },
+  { label:'3월 3주', dates:['2026-03-16','2026-03-17','2026-03-18','2026-03-19','2026-03-20'] },
+  { label:'3월 4주', dates:['2026-03-23','2026-03-24','2026-03-25','2026-03-26','2026-03-27'] },
+  { label:'4월 1주', dates:['2026-03-30','2026-03-31','2026-04-01','2026-04-02','2026-04-03'] },
+  { label:'4월 2주', dates:['2026-04-06','2026-04-07','2026-04-08','2026-04-09','2026-04-10'] },
+  { label:'4월 3주', dates:['2026-04-13','2026-04-14','2026-04-15','2026-04-16','2026-04-17'] },
+  { label:'4월 4주', dates:['2026-04-20','2026-04-21','2026-04-22','2026-04-23','2026-04-24'] },
+  { label:'5월 1주', dates:['2026-04-27','2026-04-28','2026-04-29','2026-04-30','2026-05-01'] },
+  { label:'5월 2주', dates:['2026-05-04','2026-05-05','2026-05-06','2026-05-07','2026-05-08'] },
+  { label:'5월 3주', dates:['2026-05-11','2026-05-12','2026-05-13','2026-05-14','2026-05-15'] },
+  { label:'5월 4주', dates:['2026-05-18','2026-05-19','2026-05-20','2026-05-21','2026-05-22'] },
+  { label:'5월 5주', dates:['2026-05-25','2026-05-26','2026-05-27','2026-05-28','2026-05-29'] },
+  { label:'6월 1주', dates:['2026-06-01','2026-06-02','2026-06-03','2026-06-04','2026-06-05'] },
+  { label:'6월 2주', dates:['2026-06-08','2026-06-09','2026-06-10','2026-06-11','2026-06-12'] },
+  { label:'6월 3주', dates:['2026-06-15','2026-06-16','2026-06-17','2026-06-18','2026-06-19'] },
+  { label:'6월 4주', dates:['2026-06-22','2026-06-23','2026-06-24','2026-06-25','2026-06-26'] },
+  { label:'7월 1주', dates:['2026-06-29','2026-06-30','2026-07-01','2026-07-02','2026-07-03'] },
+  { label:'7월 2주', dates:['2026-07-06','2026-07-07','2026-07-08','2026-07-09','2026-07-10'] },
+  { label:'7월 3주', dates:['2026-07-13','2026-07-14','2026-07-15','2026-07-16','2026-07-17'] },
+];
+
+const DAY_KO   = ['일', '월', '화', '수', '목', '금', '토'];
+const PERIODS  = ['1교시', '2교시', '3교시', '4교시', '5교시', '6교시', '7교시'];
+const HOLIDAYS = {
+  '2026-03-02': '삼일절 대체',
+  '2026-05-01': '근로자의날',
+  '2026-05-05': '어린이날',
+};
+
+// Default period times (HH:MM)
+const DEFAULT_PERIOD_TIMES = [
+  { start: '08:30', end: '09:15' },
+  { start: '09:25', end: '10:10' },
+  { start: '10:20', end: '11:05' },
+  { start: '11:15', end: '12:00' },
+  { start: '13:00', end: '13:45' },
+  { start: '13:55', end: '14:40' },
+  { start: '14:50', end: '15:35' },
+];
+
+// Corner position map
+const CORNER_CSS = {
+  'top-left':     { top: '20px',    left: '20px',   bottom: 'auto', right: 'auto'  },
+  'top-right':    { top: '20px',    right: '20px',  bottom: 'auto', left: 'auto'   },
+  'bottom-left':  { bottom: '20px', left: '20px',   top: 'auto',    right: 'auto'  },
+  'bottom-right': { bottom: '20px', right: '20px',  top: 'auto',    left: 'auto'   },
+};
+
+// ──────────────────────────────────────────
+//  State
+// ──────────────────────────────────────────
+let timetableData  = {};
+let periodTimes    = [...DEFAULT_PERIOD_TIMES];
+let currentCorner  = 'bottom-right';
+
+// ──────────────────────────────────────────
+//  Data loading
+// ──────────────────────────────────────────
+function loadData() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    timetableData = raw ? JSON.parse(raw) : {};
+  } catch {
+    timetableData = {};
+  }
+}
+
+function loadSettings() {
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if (raw) {
+      const saved = JSON.parse(raw);
+      if (saved.periodTimes) periodTimes   = saved.periodTimes;
+      if (saved.corner)      currentCorner = saved.corner;
+    }
+  } catch {}
+}
+
+function saveSettingsData() {
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify({
+    periodTimes,
+    corner: currentCorner,
+  }));
+}
+
+function applyCorner(corner) {
+  currentCorner = corner;
+  const widget = document.querySelector('.widget');
+  const css = CORNER_CSS[corner] || CORNER_CSS['bottom-right'];
+  Object.entries(css).forEach(([prop, val]) => {
+    widget.style[prop] = val;
+  });
+}
+
+function readCell(date, pIdx) {
+  return timetableData[`${date}__${pIdx}`] || null;
+}
+
+// ──────────────────────────────────────────
+//  Time helpers
+// ──────────────────────────────────────────
+function pad2(n) { return String(n).padStart(2, '0'); }
+
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+}
+
+function timeToMinutes(hhmm) {
+  const [h, m] = hhmm.split(':').map(Number);
+  return h * 60 + m;
+}
+
+function nowMinutes() {
+  const d = new Date();
+  return d.getHours() * 60 + d.getMinutes();
+}
+
+// Returns: { type: 'class'|'break'|'before'|'after', periodIdx?, progress? }
+function getCurrentPeriodStatus() {
+  const now = nowMinutes();
+  for (let i = 0; i < periodTimes.length; i++) {
+    const startMin = timeToMinutes(periodTimes[i].start);
+    const endMin   = timeToMinutes(periodTimes[i].end);
+    if (now >= startMin && now < endMin) {
+      const progress = (now - startMin) / (endMin - startMin);
+      return { type: 'class', periodIdx: i, progress };
+    }
+    // Gap before next period (break time)
+    if (i < periodTimes.length - 1) {
+      const nextStart = timeToMinutes(periodTimes[i + 1].start);
+      if (now >= endMin && now < nextStart) {
+        const breakProgress = (now - endMin) / (nextStart - endMin);
+        return { type: 'break', afterPeriodIdx: i, beforePeriodIdx: i + 1, breakProgress };
+      }
+    }
+  }
+  const firstStart = timeToMinutes(periodTimes[0].start);
+  const lastEnd    = timeToMinutes(periodTimes[periodTimes.length - 1].end);
+  if (now < firstStart) return { type: 'before' };
+  return { type: 'after' };
+}
+
+// ──────────────────────────────────────────
+//  Find current week
+// ──────────────────────────────────────────
+function findCurrentWeek(dateStr) {
+  return WEEKS.find(w => w.dates.includes(dateStr)) || null;
+}
+
+// ──────────────────────────────────────────
+//  Render clock
+// ──────────────────────────────────────────
+function renderClock() {
+  const now = new Date();
+  document.getElementById('clockH').textContent = pad2(now.getHours());
+  document.getElementById('clockM').textContent = pad2(now.getMinutes());
+  document.getElementById('clockS').textContent = pad2(now.getSeconds());
+
+  const month = now.getMonth() + 1;
+  const date  = now.getDate();
+  const day   = DAY_KO[now.getDay()];
+  document.getElementById('dateLine').textContent = `${now.getFullYear()}년 ${month}월 ${date}일`;
+  document.getElementById('dayLine').textContent  = `${day}요일`;
+}
+
+// ──────────────────────────────────────────
+//  Render current status card
+// ──────────────────────────────────────────
+function renderStatus(today, status) {
+  const card      = document.getElementById('statusCard');
+  const labelEl   = document.getElementById('statusLabel');
+  const mainEl    = document.getElementById('statusMain');
+  const subEl     = document.getElementById('statusSub');
+  const trackEl   = document.getElementById('progressTrack');
+  const fillEl    = document.getElementById('progressFill');
+
+  card.className = 'status-card';
+
+  if (HOLIDAYS[today]) {
+    labelEl.textContent = '오늘';
+    mainEl.textContent  = HOLIDAYS[today];
+    subEl.textContent   = '공휴일';
+    trackEl.style.display = 'none';
+    return;
+  }
+
+  const dow = new Date(today).getDay();
+  if (dow === 0 || dow === 6) {
+    labelEl.textContent = '오늘';
+    mainEl.textContent  = '주말';
+    subEl.textContent   = '수업 없음';
+    trackEl.style.display = 'none';
+    return;
+  }
+
+  if (status.type === 'before') {
+    labelEl.textContent = '수업 전';
+    const cell = readCell(today, 0);
+    mainEl.textContent  = cell ? `${PERIODS[0]} · ${cell.content}` : PERIODS[0];
+    subEl.textContent   = `${periodTimes[0].start} 시작 예정`;
+    trackEl.style.display = 'none';
+    return;
+  }
+
+  if (status.type === 'after') {
+    card.classList.add('after-school');
+    labelEl.textContent = '오늘';
+    mainEl.textContent  = '하교 완료';
+    subEl.textContent   = `수업 종료 (${periodTimes[periodTimes.length - 1].end})`;
+    trackEl.style.display = 'none';
+    return;
+  }
+
+  if (status.type === 'break') {
+    card.classList.add('break-time');
+    const nextCell = readCell(today, status.beforePeriodIdx);
+    labelEl.textContent = '쉬는 시간';
+    mainEl.textContent  = `다음: ${PERIODS[status.beforePeriodIdx]}` +
+      (nextCell ? ` · ${nextCell.content}` : '');
+    subEl.textContent   = `${periodTimes[status.beforePeriodIdx].start} 시작`;
+    trackEl.style.display = 'none';
+    return;
+  }
+
+  if (status.type === 'class') {
+    const pIdx = status.periodIdx;
+    const cell = readCell(today, pIdx);
+    labelEl.textContent = `현재 · ${PERIODS[pIdx]}`;
+    mainEl.textContent  = cell ? cell.content || '(과목 없음)' : '(과목 없음)';
+    subEl.textContent   = `${periodTimes[pIdx].start} ~ ${periodTimes[pIdx].end}`;
+    trackEl.style.display = '';
+    fillEl.style.width  = `${Math.round(status.progress * 100)}%`;
+  }
+}
+
+// ──────────────────────────────────────────
+//  Render today's list
+// ──────────────────────────────────────────
+function renderToday(today, status) {
+  const listEl = document.getElementById('todayList');
+
+  const dow = new Date(today).getDay();
+  if (dow === 0 || dow === 6 || HOLIDAYS[today]) {
+    listEl.innerHTML = `<div class="no-data"><div class="no-data-icon">🏖️</div>수업이 없는 날입니다</div>`;
+    return;
+  }
+
+  const hasAnyData = PERIODS.some((_, i) => readCell(today, i));
+  if (!hasAnyData && Object.keys(timetableData).length === 0) {
+    listEl.innerHTML = `
+      <div class="no-data">
+        <div class="no-data-icon">📋</div>
+        시간표 데이터가 없습니다<br>
+        <span style="font-size:11px;margin-top:4px;display:block">아래 ⟳ 데이터 동기화 버튼을 눌러주세요</span>
+      </div>`;
+    return;
+  }
+
+  const rows = PERIODS.map((label, i) => {
+    const cell = readCell(today, i);
+    const content = cell ? (cell.content || '') : '';
+    const bgColor = cell ? (cell.color || '#FFFFFF') : '#FFFFFF';
+
+    let rowClass = 'period-row';
+    let badge    = '';
+
+    if (status.type === 'class' && status.periodIdx === i) {
+      rowClass += ' is-current';
+      badge = `<span class="now-badge">NOW</span>`;
+    } else if (
+      status.type === 'after' ||
+      (status.type === 'class' && i < status.periodIdx) ||
+      (status.type === 'break' && i <= status.afterPeriodIdx)
+    ) {
+      rowClass += ' is-past';
+    }
+
+    // Color dot (only if not white/default)
+    const showDot = content && bgColor.toUpperCase() !== '#FFFFFF';
+    const dot = showDot
+      ? `<span class="cell-dot" style="background:${bgColor}"></span>`
+      : `<span style="width:6px;flex-shrink:0"></span>`;
+
+    const timeStr = `${periodTimes[i].start}`;
+
+    return `
+      <div class="${rowClass}">
+        <span class="period-idx">${i + 1}</span>
+        ${dot}
+        <span class="period-subject ${content ? '' : 'empty'}">${content || '—'}</span>
+        ${badge}
+        <span class="period-time">${timeStr}</span>
+      </div>`;
+  }).join('');
+
+  listEl.innerHTML = rows;
+}
+
+// ──────────────────────────────────────────
+//  Render week mini table
+// ──────────────────────────────────────────
+function renderWeekMini(today) {
+  const week = findCurrentWeek(today);
+  const miniEl  = document.getElementById('weekMini');
+  const labelEl = document.getElementById('weekLabel');
+  const nameEl  = document.getElementById('weekName');
+
+  if (!week) {
+    miniEl.innerHTML = '';
+    labelEl.textContent = '이번 주';
+    nameEl.textContent  = '학기 외 기간';
+    return;
+  }
+
+  labelEl.textContent = `이번 주 · ${week.label}`;
+  nameEl.textContent  = week.label;
+
+  const dayNames = ['월', '화', '수', '목', '금'];
+  const status   = getCurrentPeriodStatus();
+  const todayIdx = week.dates.indexOf(today);
+
+  // Header
+  let html = '<thead><tr><th></th>';
+  dayNames.forEach((d, i) => {
+    const cls = i === todayIdx ? 'today-head' : '';
+    html += `<th class="${cls}">${d}</th>`;
+  });
+  html += '</tr></thead><tbody>';
+
+  // Period rows
+  PERIODS.forEach((_, pIdx) => {
+    html += `<tr><td class="period-head">${pIdx + 1}</td>`;
+    week.dates.forEach((date, dIdx) => {
+      const cell = readCell(date, pIdx);
+      const text = cell ? (cell.content || '') : '';
+      let cls = '';
+      if (dIdx === todayIdx) {
+        cls = 'today-col';
+        if (status.type === 'class' && status.periodIdx === pIdx) {
+          cls += ' current-period-cell';
+        }
+      }
+      if (!text) cls += ' empty-cell';
+      html += `<td class="${cls.trim()}" title="${text}">${text.slice(0, 3) || '·'}</td>`;
+    });
+    html += '</tr>';
+  });
+
+  html += '</tbody>';
+  miniEl.innerHTML = html;
+}
+
+// ──────────────────────────────────────────
+//  Full render
+// ──────────────────────────────────────────
+function renderAll() {
+  loadData();
+  const today  = todayStr();
+  const status = getCurrentPeriodStatus();
+
+  renderClock();
+  renderStatus(today, status);
+  renderToday(today, status);
+  renderWeekMini(today);
+}
+
+// ──────────────────────────────────────────
+//  Sync modal
+// ──────────────────────────────────────────
+function openSync() {
+  document.getElementById('syncInput').value = '';
+  document.getElementById('syncOverlay').classList.add('open');
+  setTimeout(() => document.getElementById('syncInput').focus(), 100);
+}
+
+function closeSync() {
+  document.getElementById('syncOverlay').classList.remove('open');
+}
+
+function applySync() {
+  const raw = document.getElementById('syncInput').value.trim();
+  if (!raw) { showToast('내용을 붙여넣기 해주세요.'); return; }
+
+  try {
+    const parsed = JSON.parse(raw);
+    // Accept: raw timetableData object OR wrapped { school_timetable_2026: {...} }
+    let data = parsed;
+    if (parsed[STORAGE_KEY]) {
+      data = parsed[STORAGE_KEY];
+    }
+    if (typeof data !== 'object' || Array.isArray(data)) {
+      throw new Error('형식 오류');
+    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    timetableData = data;
+    closeSync();
+    renderAll();
+    showToast(`✓ 동기화 완료 (${Object.keys(data).length}개 셀)`);
+  } catch (e) {
+    showToast('❌ 데이터 형식이 올바르지 않습니다.');
+  }
+}
+
+// ──────────────────────────────────────────
+//  Settings modal
+// ──────────────────────────────────────────
+function selectCorner(btn) {
+  document.querySelectorAll('.corner-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function openSettings() {
+  // Highlight current corner
+  document.querySelectorAll('.corner-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.corner === currentCorner);
+  });
+
+  // Build period time inputs
+  const grid = document.getElementById('periodTimesGrid');
+  grid.innerHTML = periodTimes.map((pt, i) => `
+    <div class="period-time-item">
+      <label>${i + 1}교시</label>
+      <input class="time-input" id="st${i}" type="time" value="${pt.start}">
+      ~
+      <input class="time-input" id="et${i}" type="time" value="${pt.end}">
+    </div>
+  `).join('');
+
+  document.getElementById('settingsOverlay').classList.add('open');
+}
+
+function closeSettings() {
+  document.getElementById('settingsOverlay').classList.remove('open');
+}
+
+function saveSettings() {
+  // Save corner
+  const activeCornerBtn = document.querySelector('.corner-btn.active');
+  const newCorner = activeCornerBtn ? activeCornerBtn.dataset.corner : currentCorner;
+  applyCorner(newCorner);
+
+  // Save period times
+  const updated = periodTimes.map((_, i) => ({
+    start: document.getElementById(`st${i}`).value || periodTimes[i].start,
+    end:   document.getElementById(`et${i}`).value || periodTimes[i].end,
+  }));
+  periodTimes = updated;
+
+  saveSettingsData();
+  closeSettings();
+  renderAll();
+  showToast('✓ 설정 저장됨');
+}
+
+// ──────────────────────────────────────────
+//  Toast
+// ──────────────────────────────────────────
+let toastTimer = null;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2400);
+}
+
+// ──────────────────────────────────────────
+//  Keyboard shortcuts
+// ──────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closeSync(); closeSettings(); }
+});
+
+// Click-outside to close overlays
+document.getElementById('syncOverlay').addEventListener('click', function(e) {
+  if (e.target === this) closeSync();
+});
+document.getElementById('settingsOverlay').addEventListener('click', function(e) {
+  if (e.target === this) closeSettings();
+});
+
+// ──────────────────────────────────────────
+//  Init & tick loop
+// ──────────────────────────────────────────
+loadSettings();
+applyCorner(currentCorner);
+loadData();
+renderAll();
+
+// Clock ticks every second
+setInterval(() => {
+  renderClock();
+}, 1000);
+
+// Full refresh every 30s (status/progress)
+setInterval(() => {
+  renderAll();
+}, 30_000);
+</script>
+</body>
+</html>

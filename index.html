@@ -7,34 +7,36 @@
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 body {
-  font-family: 'Segoe UI', system-ui, sans-serif;
-  background: #0f1117;
-  color: #e0e0e0;
+  font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+  font-weight: 700;
+  background: #F7F6F3;
+  color: #37352F;
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 40px 20px;
 }
-.container { max-width: 480px; width: 100%; text-align: center; }
-.title { font-size: 2.4rem; font-weight: 900; color: #fff; margin-bottom: 8px; }
-.subtitle { color: #555; font-size: 0.9rem; margin-bottom: 52px; }
+.container { max-width: 500px; width: 100%; text-align: center; }
+.title { font-size: 2.5rem; font-weight: 700; color: #37352F; margin-bottom: 8px; }
+.subtitle { color: #9B9A97; font-size: 1rem; margin-bottom: 52px; }
 
-.cards { display: flex; flex-direction: column; gap: 16px; }
+.cards { display: flex; flex-direction: column; gap: 14px; }
 .card {
   display: block; text-decoration: none;
-  background: #1a1e2e; border: 2px solid #252a40; border-radius: 16px;
-  padding: 28px 32px; text-align: left; transition: all 0.2s;
+  background: #fff; border: 1.5px solid rgba(55,53,47,0.12); border-radius: 14px;
+  padding: 26px 30px; text-align: left; transition: all 0.18s;
+  box-shadow: 0 1px 3px rgba(55,53,47,0.07);
 }
 .card:hover {
-  border-color: #6878cc; background: #1e2440;
-  transform: translateY(-3px); box-shadow: 0 10px 32px rgba(104,120,204,0.2);
+  border-color: rgba(55,53,47,0.28); background: #fefefe;
+  transform: translateY(-2px); box-shadow: 0 6px 22px rgba(55,53,47,0.1);
 }
-.card-icon { font-size: 2.4rem; margin-bottom: 12px; display: block; }
-.card-title { font-size: 1.2rem; font-weight: 800; color: #fff; margin-bottom: 6px; }
-.card-desc { font-size: 0.85rem; color: #666; line-height: 1.6; }
+.card-icon { font-size: 2.2rem; margin-bottom: 10px; display: block; }
+.card-title { font-size: 1.15rem; font-weight: 700; color: #37352F; margin-bottom: 5px; }
+.card-desc { font-size: 0.88rem; color: #9B9A97; line-height: 1.65; font-weight: 700; }
 
-.footer { margin-top: 44px; color: #2a2e40; font-size: 0.78rem; }
+.footer { margin-top: 44px; color: #C7C7CC; font-size: 0.8rem; }
 </style>
 </head>
 <body>
@@ -43,10 +45,15 @@ body {
   <div class="subtitle">학급 운영 도구 모음</div>
 
   <div class="cards">
+    <a class="card" href="teacher-tool.html">
+      <span class="card-icon">🍎</span>
+      <div class="card-title">담임 교사 도구</div>
+      <div class="card-desc">출석부, 생활지도 일지, 업무 관리, 일정표를 한 곳에. 오늘 할 일을 대시보드로 한눈에.</div>
+    </a>
     <a class="card" href="timetable.html">
       <span class="card-icon">🗓️</span>
       <div class="card-title">학급 시간표</div>
-      <div class="card-desc">2026년 3월~7월 시간표 관리. 셀 색상 설정, 기본 시간표 일괄 적용, 요일 전체 편집.</div>
+      <div class="card-desc">2026년 2학기(8월~1월) 시간표 관리. 셀 색상 설정, 기본 시간표 일괄 적용, 월별 접기.</div>
     </a>
     <a class="card" href="vote.html">
       <span class="card-icon">🗳️</span>
