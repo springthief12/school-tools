@@ -4,18 +4,27 @@
   },
   "llm": {
     "enabled": true,
-    "model": "gpt-5-mini",
-    "debounce_sec": 20,
-    "min_interval_sec": 90,
-    "daily_limit": 200
+    "provider": "codex",
+    "model": "gpt-6.1-sol",
+    "reasoning_effort": "low",
+    "codex_path": "",
+    "debounce_sec": 30,
+    "min_interval_sec": 120,
+    "daily_limit": 120
   },
-  "active_hours": { "start": "07:30", "end": "18:30", "weekdays_only": true },
+  "active_hours": {
+    "start": "07:30",
+    "end": "18:30",
+    "weekdays_only": true
+  },
   "apps": [
     {
       "id": "comcigan",
       "label": "컴시간 알리미",
       "kind": "timetable",
-      "title_keywords": ["컴시간"],
+      "title_keywords": [
+        "컴시간"
+      ],
       "process_names": [],
       "scan_active_sec": 10,
       "scan_background_sec": 300,
@@ -25,7 +34,10 @@
       "id": "messenger",
       "label": "충북소통메신저",
       "kind": "messenger",
-      "title_keywords": ["소통메신저", "충북소통"],
+      "title_keywords": [
+        "소통메신저",
+        "충북소통"
+      ],
       "process_names": [],
       "scan_active_sec": 5,
       "scan_background_sec": 60,

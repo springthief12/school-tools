@@ -1913,7 +1913,8 @@ function renderPcStatus() {
       <div class="tt-pc-meta">마지막 확인 ${a.last_scan?esc(a.last_scan.slice(11,19)):'—'}${a.pending?' · 요약 대기 중':''}</div></div>`;
   }).join('');
   const mode=pcConn!=='on'?'':st?.paused?'⏸ 근무 시간 외 — 확인을 멈췄습니다.':st?.idle?'💤 자리 비움 — 확인 주기를 늘렸습니다.':'▶ 감지 중';
-  const llm=st?.llm?(st.llm.ready?`AI 요약 사용 (${esc(st.llm.model)}, 오늘 남은 호출 ${st.llm.calls_left_today})`:'AI 요약 꺼짐 — 규칙 기반 추출만 사용 (OPENAI_API_KEY 미설정)'):'';
+  const via=st?.llm?.provider==='codex'?'ChatGPT Plus · Codex':'OpenAI API';
+  const llm=st?.llm?(st.llm.ready?`AI 요약 사용 (${via} · ${esc(st.llm.model)}, 오늘 남은 호출 ${st.llm.calls_left_today})`:`AI 요약 꺼짐 — 규칙 기반 추출만 사용${st.llm.note?` (${esc(st.llm.note)})`:''}`):'';
   el.innerHTML=`
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
       <span class="tt-pc-dot ${pcDotCls()}"></span><b>${PC_CONN_LABEL[pcConn]}</b>

@@ -23,6 +23,8 @@ import mimetypes
 import os
 import queue
 import re
+import shutil
+import subprocess
 import sys
 import threading
 import time
@@ -62,14 +64,19 @@ DEFAULT_CONFIG = {
     },
     "llm": {
         "enabled": True,
-        "provider": "openai",
-        "api_key": "",             # 비워두면 환경변수 OPENAI_API_KEY 사용 (권장)
-        "model": "gpt-5-mini",
+        # "codex"  : ChatGPT Plus 계정으로 로그인한 Codex CLI 사용 (추가 비용 없음, Plus 사용 한도 안에서)
+        # "openai" : OpenAI API 키 사용 (별도 결제)
+        "provider": "codex",
+        "model": "gpt-6.1-sol",
+        "reasoning_effort": "low",  # 요약은 단순 작업이라 low 로 Plus 사용량을 아낍니다
+        "codex_path": "",           # 비워두면 PATH 에서 codex 를 찾습니다
+        "codex_extra_args": ["--ephemeral"],  # 세션 기록(메신저 내용)을 디스크에 남기지 않음
+        "api_key": "",              # provider=openai 일 때만. 비워두면 환경변수 OPENAI_API_KEY
         "endpoint": "https://api.openai.com/v1/chat/completions",
-        "debounce_sec": 20,        # 마지막 변화 후 이만큼 조용해지면 요약 (연속 메시지 묶기)
-        "min_interval_sec": 90,    # 같은 프로그램에 대해 최소 호출 간격
-        "daily_limit": 200,        # 하루 최대 호출 수 (비용 안전장치)
-        "timeout_sec": 60,
+        "debounce_sec": 30,         # 마지막 변화 후 이만큼 조용해지면 요약 (연속 메시지 묶기)
+        "min_interval_sec": 120,    # 같은 프로그램에 대해 최소 호출 간격
+        "daily_limit": 120,         # 하루 최대 호출 수 (Plus 사용 한도 보호)
+        "timeout_sec": 180,
     },
     # 선생님 정보 — 컴시간 화면에서 '내 시간표' 변경만 골라내는 데 쓰입니다.
     "teacher": {
@@ -395,16 +402,95 @@ SYSTEM_PROMPT = """당신은 한국 학교 교사의 업무 비서입니다. 교
 - 변화가 의미 없는 화면 잡음(시계, 읽음 표시 등)이면 summary 를 "의미 있는 변경 없음", important=false, 나머지 빈 배열로 둡니다."""
 
 
+RESULT_SCHEMA = {
+    "type": "object",
+    "additionalProperties": False,
+    "required": ["summary", "important", "timetable_changes", "tasks"],
+    "properties": {
+        "summary": {"type": "string"},
+        "important": {"type": "boolean"},
+        "timetable_changes": {"type": "array", "items": {
+            "type": "object", "additionalProperties": False,
+            "required": ["date", "period", "before", "after", "reason"],
+            "properties": {
+                "date": {"type": "string"}, "period": {"type": "integer"},
+                "before": {"type": "string"}, "after": {"type": "string"}, "reason": {"type": "string"},
+            }}},
+        "tasks": {"type": "array", "items": {
+            "type": "object", "additionalProperties": False,
+            "required": ["title", "detail", "deadline", "priority"],
+            "properties": {
+                "title": {"type": "string"}, "detail": {"type": "string"},
+                "deadline": {"type": ["string", "null"]},
+                "priority": {"type": "string", "enum": ["high", "normal", "low"]},
+            }}},
+    },
+}
+
+CODEX_NOTE = ("\n\n[작업 방식] 파일을 읽거나 명령을 실행하지 마세요. 위 글자만 보고 "
+              "지정된 JSON 형식으로 바로 답하세요.")
+
+
 class Analyzer:
     def __init__(self, cfg):
         self.cfg = cfg
         self.llm = cfg["llm"]
+        self.work_dir = DATA_DIR / "codex_work"  # 빈 폴더에서 실행 → 저장소 파일을 읽지 않음
+
+    def provider(self):
+        return self.llm.get("provider", "codex")
 
     def api_key(self):
         return self.llm.get("api_key") or os.environ.get("OPENAI_API_KEY", "")
 
+    def codex_bin(self):
+        return self.llm.get("codex_path") or shutil.which("codex")
+
     def llm_ready(self):
-        return bool(self.llm.get("enabled") and self.api_key())
+        if not self.llm.get("enabled"):
+            return False
+        return bool(self.codex_bin() if self.provider() == "codex" else self.api_key())
+
+    def llm_note(self):
+        if not self.llm.get("enabled"):
+            return "AI 요약 꺼짐 (config.json)"
+        if self.provider() == "codex":
+            return "" if self.codex_bin() else "Codex CLI 를 찾을 수 없습니다 — README 1단계를 확인해 주세요"
+        return "" if self.api_key() else "OPENAI_API_KEY 미설정"
+
+    def call_codex(self, user_prompt):
+        self.work_dir.mkdir(parents=True, exist_ok=True)
+        schema = self.work_dir / "schema.json"
+        out = self.work_dir / "last_message.json"
+        schema.write_text(json.dumps(RESULT_SCHEMA), encoding="utf-8")
+        out.unlink(missing_ok=True)
+        cmd = [self.codex_bin(), "exec", "--skip-git-repo-check", "--sandbox", "read-only",
+               "-m", self.llm["model"], "--output-schema", str(schema), "-o", str(out)]
+        if self.llm.get("reasoning_effort"):
+            cmd += ["-c", f"model_reasoning_effort={self.llm['reasoning_effort']}"]
+        cmd += list(self.llm.get("codex_extra_args") or [])
+        cmd.append("-")  # 프롬프트는 stdin 으로 전달 (명령줄 특수문자 문제 방지)
+        r = subprocess.run(
+            cmd, input=SYSTEM_PROMPT + "\n\n" + user_prompt + CODEX_NOTE,
+            capture_output=True, encoding="utf-8", errors="replace", cwd=self.work_dir,
+            timeout=self.llm.get("timeout_sec", 180),
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+        extra = self.llm.get("codex_extra_args") or []
+        if r.returncode != 0 and "--ephemeral" in extra and "--ephemeral" in (r.stderr or ""):
+            log("이 Codex 버전은 --ephemeral 을 지원하지 않아 빼고 다시 실행합니다.")
+            self.llm["codex_extra_args"] = [a for a in extra if a != "--ephemeral"]
+            return self.call_codex(user_prompt)
+        try:
+            if r.returncode != 0:
+                tail = (r.stderr or r.stdout or "").strip().splitlines()[-3:]
+                raise RuntimeError(f"codex 종료 코드 {r.returncode}: {' / '.join(tail)[:300]}")
+            text = out.read_text(encoding="utf-8") if out.exists() else r.stdout
+            m = re.search(r"\{.*\}", text, re.S)  # 앞뒤 설명 문구가 붙어도 JSON 만 추출
+            if not m:
+                raise RuntimeError("codex 응답에서 JSON 을 찾지 못했습니다")
+            return json.loads(m.group(0))
+        finally:
+            out.unlink(missing_ok=True)  # 요약 결과도 state.json 외에는 남기지 않음
 
     def build_user_prompt(self, app, change, today):
         parts = [
@@ -421,6 +507,8 @@ class Analyzer:
         return "\n\n".join(parts)
 
     def call_llm(self, user_prompt):
+        if self.provider() == "codex":
+            return self.call_codex(user_prompt)
         body = {
             "model": self.llm["model"],
             "messages": [
@@ -497,7 +585,9 @@ class Analyzer:
                 return self.sanitize(res), "ai", None
             except urllib.error.HTTPError as e:
                 err = f"AI 호출 실패 (HTTP {e.code}): {e.read().decode('utf-8', 'replace')[:200]}"
-            except Exception as e:  # 네트워크, JSON 형식 오류 등
+            except subprocess.TimeoutExpired:
+                err = "AI 호출 시간 초과 (codex)"
+            except Exception as e:  # 네트워크, JSON 형식 오류, 로그인 만료 등
                 err = f"AI 호출 실패: {e}"
             log(err)
             return self.sanitize(self.rule_based(app, change, today)), "rule", err
@@ -654,6 +744,7 @@ class Monitor:
                 "apps": [a.public() for a in self.apps],
                 "llm": {
                     "ready": self.analyzer.llm_ready(), "model": self.cfg["llm"]["model"],
+                    "provider": self.analyzer.provider(), "note": self.analyzer.llm_note(),
                     "calls_left_today": self.store.llm_quota_left(self.cfg["llm"]["daily_limit"]),
                 },
                 "uia": getattr(self.src, "uia", True) is not None,
@@ -987,6 +1078,21 @@ def cmd_dump_text(src, cfg, keyword):
                 print(text or "(읽을 수 있는 글자 없음)")
 
 
+def cmd_test_ai(cfg):
+    an = Analyzer(cfg)
+    print(f"공급자: {an.provider()} · 모델: {cfg['llm']['model']}")
+    if not an.llm_ready():
+        print("준비 안 됨:", an.llm_note())
+        return
+    sample = {"before": "", "after": "", "new_lines": [
+        "[교무부] 2학기 학업성적관리위원회 자료를 10월 30일까지 업무관리시스템으로 제출해 주세요.",
+        "[행정실] 오늘 오후 4시 소방 점검이 있습니다."]}
+    t0 = time.perf_counter()
+    res, engine, err = an.analyze({"label": "충북소통메신저", "kind": "messenger"}, sample)
+    print(f"결과 ({engine}, {time.perf_counter() - t0:.1f}초){' — ' + err if err else ''}")
+    print(json.dumps(res, ensure_ascii=False, indent=2))
+
+
 def main():
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -995,9 +1101,12 @@ def main():
     ap.add_argument("--list-windows", action="store_true", help="보이는 창과 exe 이름 출력")
     ap.add_argument("--dump-text", metavar="키워드", help="창 제목에 키워드가 있는 창의 글자 출력")
     ap.add_argument("--mock", metavar="JSON", help="(테스트용) 실제 창 대신 JSON 파일 사용")
+    ap.add_argument("--test-ai", action="store_true", help="예시 메시지로 AI 요약 1회 시험")
     args = ap.parse_args()
 
     cfg = load_config(args.config)
+    if args.test_ai:
+        return cmd_test_ai(cfg)
     if args.mock:
         src = MockSource(args.mock)
     elif sys.platform == "win32":
@@ -1018,8 +1127,8 @@ def main():
     server = ThreadingHTTPServer(("127.0.0.1", cfg["port"]), make_handler(cfg, monitor, store))
     server.daemon_threads = True
     log(f"school-tools PC 에이전트 {VERSION} 시작 — http://127.0.0.1:{cfg['port']}/teacher-tool.html")
-    log("AI 요약:", "사용 (" + cfg["llm"]["model"] + ")" if analyzer.llm_ready()
-        else "꺼짐 — 규칙 기반 요약만 사용 (OPENAI_API_KEY 미설정)")
+    log("AI 요약:", f"사용 ({analyzer.provider()} · {cfg['llm']['model']})" if analyzer.llm_ready()
+        else f"꺼짐 — 규칙 기반 요약만 사용 ({analyzer.llm_note()})")
     if getattr(src, "uia", True) is None:
         log("uiautomation 미설치 — 창 제목만 감지합니다. (pip install uiautomation)")
     try:

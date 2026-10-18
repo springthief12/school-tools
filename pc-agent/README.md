@@ -13,11 +13,22 @@
    ```
    pip install -r requirements.txt
    ```
-3. OpenAI API 키를 환경변수로 등록합니다. (ChatGPT Plus 구독과 별도로 [API 결제](https://platform.openai.com/api-keys)가 필요합니다.)
-   ```
-   setx OPENAI_API_KEY "sk-..."
-   ```
-   키가 없으면 AI 대신 **규칙 기반 추출**(‘까지’, ‘제출’, ‘회신’ 같은 낱말과 날짜를 찾는 방식)로 동작합니다.
+3. **ChatGPT Plus 계정으로 AI 요약 연결** (API 키·추가 결제 없음)
+   1. [Node.js LTS](https://nodejs.org/ko)를 설치합니다.
+   2. Codex CLI 를 설치합니다.
+      ```
+      npm install -g @openai/codex
+      ```
+   3. 로그인합니다. 브라우저가 열리면 **Sign in with ChatGPT** 를 고르고 Plus 계정으로 로그인하세요.
+      ```
+      codex login
+      ```
+   4. 연결을 시험합니다. 예시 메시지가 GPT-6.1 Sol 로 요약되어 나오면 성공입니다.
+      ```
+      python school_agent.py --test-ai
+      ```
+
+   Codex 를 찾지 못하거나 로그인이 만료되면 AI 대신 **규칙 기반 추출**(‘까지’, ‘제출’, ‘회신’ 같은 낱말과 날짜를 찾는 방식)로 자동 전환됩니다.
 
 ## 2. 감지 대상 확인
 
@@ -55,7 +66,7 @@ Windows 로그인 시 자동 실행하려면 `Win + R` → `shell:startup` 폴�
 | 창 글자 읽기 — 그 창을 보고 있을 때 | 메신저 5초 · 컴시간 10초 | 창 크기에 따라 수십~수백 ms |
 | 창 글자 읽기 — 뒤에 있을 때 | 메신저 60초 · 컴시간 5분 | 위와 같음 |
 | 새 창(알림 팝업)이 나타나면 | 즉시 1회 | — |
-| AI 요약 | **변경 시에만**, 20초 조용해진 뒤 · 같은 앱 최소 90초 간격 · 하루 200회 한도 | 네트워크 1회 |
+| AI 요약 | **변경 시에만**, 30초 조용해진 뒤 · 같은 앱 최소 2분 간격 · 하루 120회 한도 | codex 1회 (보통 수 초~수십 초, 백그라운드) |
 | 브라우저 전송 | 변경 시에만 (SSE), 20초마다 연결 유지 신호 | 거의 0 |
 
 - 5분 동안 키보드·마우스 입력이 없으면 모든 주기가 **4배**로 늘어납니다.
@@ -65,14 +76,20 @@ Windows 로그인 시 자동 실행하려면 `Win + R` → `shell:startup` 폴�
 ## 5. 개인정보 · 보안
 
 - 에이전트는 `127.0.0.1`(이 PC)에서만 접속을 받고, `allowed_origins` 에 적힌 웹 주소만 데이터를 읽을 수 있습니다.
-- AI를 켜면 **새로 바뀐 글자만** OpenAI로 전송됩니다(메신저는 새 줄만, 컴시간은 변경 전/후 화면).
+- AI를 켜면 **새로 바뀐 글자만** ChatGPT 계정을 통해 OpenAI로 전송됩니다(메신저는 새 줄만, 컴시간은 변경 전/후 화면).
+- Codex 는 빈 폴더(`data/codex_work`)에서 읽기 전용(`--sandbox read-only`)으로 실행되고, `--ephemeral` 로 대화 기록을 남기지 않습니다.
   학교 정보보안 지침상 외부 전송이 어렵다면 `"llm": {"enabled": false}` 로 끄고 규칙 기반 추출만 사용하세요.
 - 화면 기록은 `data/state.json` 에만 저장되며 git 에 올라가지 않습니다(`.gitignore`).
 
-## 6. ChatGPT 앱과의 관계
+## 6. ChatGPT Plus 와의 관계
 
 ChatGPT 데스크톱 앱은 사용자가 요청할 때 허락된 앱 내용을 읽는 방식이라, 백그라운드에서 계속 감시하며 웹페이지를 고치는 용도로는 쓸 수 없습니다.
-그래서 감지는 이 에이전트가 맡고, 요약은 ChatGPT 와 같은 OpenAI 모델을 API 로 호출합니다. 모델은 `llm.model` 에서 바꿀 수 있습니다.
+그래서 감지는 이 에이전트가 맡고, 요약은 **Plus 요금제에 포함된 Codex** 로 GPT-6.1 Sol 을 호출합니다(`codex exec`).
+
+- Plus 의 Codex 사용 한도를 함께 씁니다. 한도에 닿으면 그동안은 규칙 기반 추출로 대신합니다.
+  다른 Codex 작업을 많이 하신다면 `daily_limit` 를 낮추거나 `min_interval_sec` 를 늘리세요.
+- `reasoning_effort` 는 기본 `low` 입니다. 요약 품질이 아쉬우면 `medium` 으로 올릴 수 있지만 사용량과 시간이 늘어납니다.
+- API 키 방식을 쓰고 싶으시면 `"provider": "openai"` 로 바꾸고 환경변수 `OPENAI_API_KEY` 를 등록하면 됩니다.
 
 ## 테스트 (Windows 가 아닌 곳)
 
