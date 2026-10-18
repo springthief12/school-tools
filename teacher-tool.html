@@ -509,6 +509,28 @@
     .ev-gray   { background: rgba(142,142,147,0.15); color: #555; }
 
     /* ═══ RESPONSIVE ═══ */
+    /* ═══ PC 연동 ═══ */
+    .tt-pc-dot { display:inline-block; width:10px; height:10px; border-radius:50%; background:var(--ios-gray3); flex-shrink:0; }
+    .tt-pc-dot.on   { background:var(--ios-green); box-shadow:0 0 0 3px rgba(52,199,89,0.18); }
+    .tt-pc-dot.warn { background:var(--ios-orange); }
+    .tt-pc-dot.off  { background:var(--ios-red); }
+    .tt-pc-side { display:flex; align-items:center; justify-content:center; gap:6px; font-size:14px; color:var(--text-muted); cursor:pointer; }
+    .tt-pc-apps { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:10px; }
+    .tt-pc-app { border:1px solid var(--border); border-radius:var(--radius-sm); padding:10px 12px; font-size:15px; }
+    .tt-pc-app-name { display:flex; align-items:center; gap:8px; font-size:17px; margin-bottom:4px; }
+    .tt-pc-meta { font-size:14px; color:var(--text-muted); font-weight:400; }
+    .tt-pc-report { border:1px solid var(--border); border-radius:var(--radius-sm); padding:12px 14px; }
+    .tt-pc-report + .tt-pc-report { margin-top:10px; }
+    .tt-pc-report.important { border-left:4px solid var(--ios-red); }
+    .tt-pc-report-head { display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:6px; }
+    .tt-pc-summary { font-size:17px; line-height:1.6; }
+    .tt-pc-list { margin:8px 0 0 0; padding-left:18px; font-size:15px; line-height:1.7; }
+    .tt-pc-actions { display:flex; gap:6px; flex-wrap:wrap; margin-top:10px; }
+    .tt-pc-excerpt { margin-top:8px; font-size:14px; color:var(--text-secondary); }
+    .tt-pc-excerpt pre { white-space:pre-wrap; font-family:inherit; font-weight:400; background:var(--bg-input); padding:8px 10px; border-radius:6px; margin-top:6px; max-height:220px; overflow:auto; }
+    .tt-pc-opt { display:flex; align-items:center; gap:8px; font-size:16px; padding:4px 0; cursor:pointer; }
+    .tt-pc-opt input { width:18px; height:18px; accent-color:var(--accent-dark); }
+
     @media (max-width: 900px) {
       .tt-stat-grid { grid-template-columns: repeat(2,1fr); }
       .tt-grid-2    { grid-template-columns: 1fr; }
@@ -559,10 +581,14 @@
       <li class="tt-nav-item" data-section="schedule">
         <span class="tt-nav-icon">🗓</span><span class="tt-nav-label">일정표</span>
       </li>
+      <li class="tt-nav-item" data-section="pclink">
+        <span class="tt-nav-icon">🔗</span><span class="tt-nav-label">PC 연동</span>
+      </li>
     </ul>
     <div class="tt-sidebar-footer">
       <div class="tt-clock" id="sidebarClock"></div>
       <div class="tt-today-badge" id="sidebarDate"></div>
+      <div class="tt-pc-side" id="sidebarPc" onclick="navigateTo('pclink')" title="PC 에이전트 연결 상태"></div>
     </div>
   </nav>
 
@@ -574,6 +600,7 @@
     <section id="sec-lifeguide"  class="tt-section"><div id="lg-root"></div></section>
     <section id="sec-duties"     class="tt-section"><div id="duties-root"></div></section>
     <section id="sec-schedule"   class="tt-section"><div id="sched-root"></div></section>
+    <section id="sec-pclink"     class="tt-section"><div id="pc-root"></div></section>
   </main>
 </div>
 
@@ -629,13 +656,14 @@ const WEEKS = [
   { label:'1월 2주',  dates:['2027-01-11','2027-01-12','2027-01-13','2027-01-14','2027-01-15'] },
 ];
 
-const SK_TT    = 'school_timetable_2026_2nd'; // READ-ONLY
+const SK_TT    = 'school_timetable_2026_2nd'; // timetable.html 소유 — PC 연동(컴시간 변경)만 예외로 기록
 const SK_ATT   = 'tt_attendance_v2'; // free-text diary (v2)
 const SK_LG    = 'tt_lifeguide_v1';
 const SK_DU    = 'tt_duties_v1';
 const SK_SC    = 'tt_schedule_v1';
 const SK_UI    = 'tt_ui_state_v1';
 const SK_PHOTO = 'tt_profile_photo';
+const SK_PC    = 'tt_pclink_v1';
 
 // ═══════════════════════════════════════════════
 //  UTILITIES
@@ -838,6 +866,7 @@ function renderSection(id) {
   if(id==='lifeguide')  renderLg();
   if(id==='duties')     renderDuties();
   if(id==='schedule')   renderSched();
+  if(id==='pclink')     renderPc();
 }
 document.getElementById('navList').addEventListener('click',e=>{
   const item=e.target.closest('.tt-nav-item');
@@ -1006,7 +1035,8 @@ function renderDash() {
           <div class="tt-card-body" style="flex:1;display:flex;flex-direction:column">${buildDashGuideEdit(date, guideText)}</div>
         </div>
       </div>
-    </div>`;
+    </div>
+    ${buildDashPc()}`;
 
   // Attendance textarea auto-save
   const attTa=document.getElementById('dashAttTa');
@@ -1684,6 +1714,249 @@ function delEvModal(id) {
 }
 
 // ═══════════════════════════════════════════════
+//  PC 연동 (pc-agent/school_agent.py)
+//  에이전트가 컴시간 알리미·충북소통메신저 변화를 요약해 보내면
+//  시간표 변경은 SK_TT 에, 중요한 업무는 SK_DU 에 반영합니다.
+// ═══════════════════════════════════════════════
+const PC_DEFAULT_URL = 'http://127.0.0.1:8765';
+let pc = {}, pcState = null, pcConn = 'off', pcES = null;
+
+function pcLoad() {
+  pc = load(SK_PC, {});
+  pc = { url:PC_DEFAULT_URL, enabled:true, autoTT:true, autoTask:true, seen:[], reports:[], ...pc };
+}
+const pcSave = ()=>save(SK_PC,pc);
+const pcBase = ()=>pc.url.replace(/\/$/,'');
+
+function pcInit() {
+  pcLoad();
+  renderPcSidebar();
+  pcConnect();
+  // 다른 탭(timetable.html 등)에서 바뀐 데이터 반영
+  window.addEventListener('storage', e=>{
+    if(e.key===SK_TT) ttData=load(SK_TT,{});
+    else if(e.key===SK_DU) duties=load(SK_DU,{tasks:[]});
+    else return;
+    if(['dashboard','timetable','duties'].includes(ui.sec)) renderSection(ui.sec);
+  });
+  // 탭이 다시 보일 때 연결이 닫혀 있으면 다시 연결
+  document.addEventListener('visibilitychange', ()=>{
+    if(document.visibilityState==='visible' && pc.enabled && (!pcES || pcES.readyState===2)) pcConnect();
+  });
+}
+
+function pcConnect() {
+  if(pcES) { pcES.close(); pcES=null; }
+  if(!pc.enabled || typeof EventSource==='undefined') { pcSetConn('off'); return; }
+  pcSetConn('connecting');
+  try { pcES=new EventSource(pcBase()+'/api/events'); }
+  catch { pcSetConn('error'); return; }
+  pcES.addEventListener('open', ()=>{ pcSetConn('on'); pcCatchUp(); });
+  pcES.addEventListener('error', ()=>pcSetConn('error'));
+  pcES.addEventListener('status', e=>{
+    try { pcState=JSON.parse(e.data); } catch { return; }
+    renderPcSidebar();
+    if(ui.sec==='pclink') renderPcStatus();
+  });
+  pcES.addEventListener('report', e=>{
+    try { pcHandleReport(JSON.parse(e.data), true); } catch {}
+  });
+}
+
+// 연결이 끊긴 동안 쌓인 보고 가져오기
+async function pcCatchUp() {
+  try {
+    const st=await (await fetch(pcBase()+'/api/state',{cache:'no-store'})).json();
+    pcState=st;
+    (st.reports||[]).forEach(rep=>pcHandleReport(rep,false));
+    renderPcSidebar();
+    if(ui.sec==='pclink') renderPc();
+  } catch {}
+}
+
+function pcSetConn(s) {
+  pcConn=s; renderPcSidebar();
+  if(ui.sec==='pclink') renderPcStatus();
+}
+
+function pcHandleReport(r, live) {
+  if(!r||!r.id||pc.seen.includes(r.id)) return;
+  pc.seen=[...pc.seen,r.id].slice(-500);
+  const rec={...r, ttApplied:false, ttBackup:null, taskIds:[]};
+  if(pc.autoTT && rec.timetable_changes?.length) pcApplyTT(rec);
+  if(pc.autoTask && rec.important && rec.tasks?.length) pcAddTasks(rec);
+  pc.reports=[rec,...pc.reports].slice(0,60);
+  pcSave();
+  if(live) {
+    const extra=[rec.ttApplied?`시간표 ${rec.timetable_changes.length}건 반영`:'', rec.taskIds.length?`업무 ${rec.taskIds.length}건 등록`:''].filter(Boolean).join(' · ');
+    showToast(`🔔 ${rec.app_label}: ${rec.summary}${extra?' ('+extra+')':''}`, rec.important?'danger':'info');
+  }
+  if(['dashboard','pclink','duties','timetable'].includes(ui.sec)) renderSection(ui.sec);
+}
+
+function pcFind(id) { return pc.reports.find(x=>x.id===id); }
+
+function pcApplyTT(rec) {
+  const fresh=load(SK_TT,{}), backup={};
+  rec.timetable_changes.forEach(c=>{
+    const key=`${c.date}__${c.period-1}`, prev=fresh[key]||null;
+    if(!(key in backup)) backup[key]=prev;
+    const memo=`[컴시간 ${rec.ts.slice(5,16).replace('T',' ')}] ${c.before||prev?.content||'?'} → ${c.after||'(없음)'}${c.reason?` (${c.reason})`:''}`;
+    fresh[key]={ ...(prev||{}), content:c.after||'', note:[prev?.note,memo].filter(Boolean).join('\n'), color:'#FFE0B2', changedBy:'pc-agent' };
+  });
+  save(SK_TT,fresh); ttData=fresh;
+  rec.ttApplied=true; rec.ttBackup=backup;
+}
+
+function pcUndoTT(id) {
+  const rec=pcFind(id); if(!rec||!rec.ttApplied) return;
+  const fresh=load(SK_TT,{});
+  Object.entries(rec.ttBackup||{}).forEach(([k,v])=>{ if(v) fresh[k]=v; else delete fresh[k]; });
+  save(SK_TT,fresh); ttData=fresh;
+  rec.ttApplied=false; rec.ttBackup=null; pcSave();
+  renderSection(ui.sec); showToast('시간표 변경을 되돌렸습니다.');
+}
+
+function pcAddTasks(rec) {
+  const ids=[], added=[];
+  (rec.tasks||[]).forEach(t=>{
+    const dup=duties.tasks.find(x=>x.title===t.title&&(x.deadline||null)===(t.deadline||null));
+    if(dup) { ids.push(dup.id); return; }
+    const id=genId();
+    added.push({ id, title:t.title,
+      detail:[t.detail, `(출처: ${rec.app_label} ${rec.ts.slice(5,16).replace('T',' ')})`].filter(Boolean).join('\n'),
+      deadline:t.deadline||null, priority:t.priority||'normal', done:false,
+      createdAt:new Date().toISOString(), source:'pc-agent' });
+    ids.push(id);
+  });
+  if(added.length) { duties={...duties,tasks:[...duties.tasks,...added]}; saveDu(); }
+  rec.taskIds=ids;
+}
+
+function pcApplyTTBtn(id)  { const r=pcFind(id); if(!r) return; pcApplyTT(r); pcSave(); renderPc(); showToast('시간표에 반영했습니다.','success'); }
+function pcAddTasksBtn(id) { const r=pcFind(id); if(!r) return; pcAddTasks(r); pcSave(); renderPc(); showToast('업무로 등록했습니다.','success'); }
+function pcDismiss(id)     { pc.reports=pc.reports.filter(x=>x.id!==id); pcSave(); renderSection(ui.sec); renderPcSidebar(); }
+
+async function pcScanNow() {
+  try {
+    await fetch(pcBase()+'/api/scan',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
+    showToast('지금 확인을 요청했습니다. 변경이 있으면 곧 보고됩니다.','success');
+  } catch { showToast('에이전트에 연결할 수 없습니다.','danger'); }
+}
+
+function pcSaveSettings() {
+  const url=(document.getElementById('pc-url')?.value||'').trim()||PC_DEFAULT_URL;
+  pc={...pc, url,
+    enabled:!!document.getElementById('pc-en')?.checked,
+    autoTT:!!document.getElementById('pc-att')?.checked,
+    autoTask:!!document.getElementById('pc-atk')?.checked };
+  pcSave(); pcConnect(); renderPc(); showToast('저장되었습니다.','success');
+}
+
+// ── 표시 ──
+const PC_CONN_LABEL = { on:'연결됨', connecting:'연결 중…', error:'에이전트 꺼짐', off:'사용 안 함' };
+function pcDotCls() {
+  if(pcConn!=='on') return pcConn==='connecting'?'warn':pcConn==='off'?'':'off';
+  return pcState?.paused||pcState?.idle?'warn':'on';
+}
+
+function renderPcSidebar() {
+  const el=document.getElementById('sidebarPc'); if(!el) return;
+  const imp=(pc.reports||[]).filter(r=>r.important).length;
+  el.innerHTML=`<span class="tt-pc-dot ${pcDotCls()}"></span>PC ${PC_CONN_LABEL[pcConn]}${imp?` · 중요 ${imp}`:''}`;
+}
+
+function pcReportHtml(r, compact) {
+  const tc=r.timetable_changes||[], tk=r.tasks||[];
+  const head=`<div class="tt-pc-report-head">
+      <span class="tt-badge ${r.kind==='timetable'?'tt-badge--purple':'tt-badge--blue'}">${esc(r.app_label)}</span>
+      ${r.important?'<span class="tt-badge tt-badge--red">중요</span>':''}
+      <span class="tt-pc-meta">${esc(r.ts.slice(5,16).replace('T',' '))} · ${r.engine==='ai'?'AI 요약':'자동 추출'}</span>
+    </div>`;
+  const summary=`<div class="tt-pc-summary">${esc(r.summary)}</div>`;
+  if(compact) return `<div class="tt-pc-report${r.important?' important':''}">${head}${summary}</div>`;
+  const ttList=tc.length?`<ul class="tt-pc-list">${tc.map(c=>`<li>${esc(fmtShort(c.date))} ${c.period}교시: ${esc(c.before||'?')} → <b>${esc(c.after||'(없음)')}</b>${c.reason?` <span class="tt-pc-meta">${esc(c.reason)}</span>`:''}</li>`).join('')}</ul>`:'';
+  const tkList=tk.length?`<ul class="tt-pc-list">${tk.map(t=>`<li><b>${esc(t.title)}</b> — ${t.deadline?`마감 ${esc(fmtShort(t.deadline))}`:'기한 없음'}${t.detail?`<div class="tt-pc-meta">${esc(t.detail)}</div>`:''}</li>`).join('')}</ul>`:'';
+  const acts=[
+    tc.length&&!r.ttApplied?`<button class="tt-btn tt-btn--primary tt-btn--sm" onclick="pcApplyTTBtn('${r.id}')">시간표에 반영</button>`:'',
+    r.ttApplied?`<button class="tt-btn tt-btn--ghost tt-btn--sm" onclick="pcUndoTT('${r.id}')">↩ 시간표 되돌리기</button>`:'',
+    tk.length&&!r.taskIds?.length?`<button class="tt-btn tt-btn--primary tt-btn--sm" onclick="pcAddTasksBtn('${r.id}')">업무로 등록</button>`:'',
+    r.taskIds?.length?`<span class="tt-badge tt-badge--green">업무 ${r.taskIds.length}건 등록됨</span>`:'',
+    `<button class="tt-btn tt-btn--ghost tt-btn--sm" onclick="pcDismiss('${r.id}')">지우기</button>`,
+  ].join('');
+  const err=r.error?`<div class="tt-pc-meta" style="color:var(--ios-red);margin-top:6px">${esc(r.error)}</div>`:'';
+  const ex=r.excerpt?`<details class="tt-pc-excerpt"><summary>원문 보기</summary><pre>${esc(r.excerpt)}</pre></details>`:'';
+  return `<div class="tt-pc-report${r.important?' important':''}">${head}${summary}${ttList}${tkList}${err}${ex}<div class="tt-pc-actions">${acts}</div></div>`;
+}
+
+function buildDashPc() {
+  if(!pc.enabled) return '';
+  const list=(pc.reports||[]).slice(0,3);
+  return `<div class="tt-card" style="margin-top:14px">
+    <div class="tt-card-header">
+      <div class="tt-card-title"><span class="tt-pc-dot ${pcDotCls()}"></span>· PC 알림 요약</div>
+      <button class="tt-btn tt-btn--ghost tt-btn--sm" onclick="navigateTo('pclink')">전체 보기 ›</button>
+    </div>
+    <div class="tt-card-body">${list.length?list.map(r=>pcReportHtml(r,true)).join(''):
+      `<div class="tt-pc-meta">${pcConn==='on'?'아직 새 알림이 없습니다.':'PC 에이전트가 연결되지 않았습니다. 「PC 연동」 메뉴에서 확인하세요.'}</div>`}</div>
+  </div>`;
+}
+
+function renderPcStatus() {
+  const el=document.getElementById('pc-status'); if(!el) return;
+  const st=pcState;
+  const apps=(st?.apps||[]).map(a=>{
+    const cls=!a.open?'':a.error?'off':a.foreground?'on':'warn';
+    const what=!a.open?'실행 안 됨':a.error?esc(a.error):a.foreground?'보고 있는 중 (자주 확인)':'백그라운드 (가끔 확인)';
+    return `<div class="tt-pc-app"><div class="tt-pc-app-name"><span class="tt-pc-dot ${cls}"></span>${esc(a.label)}</div>
+      <div class="tt-pc-meta">${what}</div>
+      <div class="tt-pc-meta">마지막 확인 ${a.last_scan?esc(a.last_scan.slice(11,19)):'—'}${a.pending?' · 요약 대기 중':''}</div></div>`;
+  }).join('');
+  const mode=pcConn!=='on'?'':st?.paused?'⏸ 근무 시간 외 — 확인을 멈췄습니다.':st?.idle?'💤 자리 비움 — 확인 주기를 늘렸습니다.':'▶ 감지 중';
+  const llm=st?.llm?(st.llm.ready?`AI 요약 사용 (${esc(st.llm.model)}, 오늘 남은 호출 ${st.llm.calls_left_today})`:'AI 요약 꺼짐 — 규칙 기반 추출만 사용 (OPENAI_API_KEY 미설정)'):'';
+  el.innerHTML=`
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+      <span class="tt-pc-dot ${pcDotCls()}"></span><b>${PC_CONN_LABEL[pcConn]}</b>
+      <span class="tt-pc-meta">${mode}</span>
+      ${pcConn==='on'?`<button class="tt-btn tt-btn--ghost tt-btn--sm" style="margin-left:auto" onclick="pcScanNow()">🔄 지금 확인</button>`:''}
+    </div>
+    ${pcConn==='on'?`<div class="tt-pc-apps">${apps}</div><div class="tt-pc-meta" style="margin-top:8px">${llm}${st?.uia===false?' · uiautomation 미설치(창 제목만 감지)':''}</div>`
+      :`<div class="tt-pc-meta">이 컴퓨터에서 <b>pc-agent\\start_agent.bat</b> 을 실행하면 자동으로 연결됩니다. (주소: ${esc(pc.url)})</div>`}`;
+}
+
+function renderPc() {
+  const reports=pc.reports||[];
+  document.getElementById('pc-root').innerHTML=`
+    <div style="margin-bottom:12px">
+      <div class="tt-page-title">🔗 PC 연동</div>
+      <div class="tt-page-sub">컴시간 알리미 · 충북소통메신저 변경 감지와 요약 보고</div>
+    </div>
+    <div class="tt-card" style="margin-bottom:14px">
+      <div class="tt-card-header"><div class="tt-card-title">· 연결 상태</div></div>
+      <div class="tt-card-body" id="pc-status"></div>
+    </div>
+    <div class="tt-card" style="margin-bottom:14px">
+      <div class="tt-card-header"><div class="tt-card-title">· 보고 (${reports.length})</div></div>
+      <div class="tt-card-body">${reports.length?reports.map(r=>pcReportHtml(r,false)).join(''):
+        '<div class="tt-empty" style="padding:20px"><div class="tt-empty-icon">📭</div><div class="tt-empty-text">아직 보고가 없습니다.</div></div>'}</div>
+    </div>
+    <div class="tt-card">
+      <div class="tt-card-header"><div class="tt-card-title">· 설정</div></div>
+      <div class="tt-card-body">
+        <label class="tt-pc-opt"><input type="checkbox" id="pc-en" ${pc.enabled?'checked':''}>PC 에이전트 연결 사용</label>
+        <label class="tt-pc-opt"><input type="checkbox" id="pc-att" ${pc.autoTT?'checked':''}>컴시간 변경 사항을 시간표에 자동 반영 (주황색 표시, 되돌리기 가능)</label>
+        <label class="tt-pc-opt"><input type="checkbox" id="pc-atk" ${pc.autoTask?'checked':''}>메신저의 중요 업무를 마감기한과 함께 자동 등록</label>
+        <div class="tt-form-group" style="margin-top:8px"><label class="tt-form-label">에이전트 주소</label>
+          <input id="pc-url" class="tt-input" value="${esc(pc.url)}"></div>
+        <div style="display:flex;justify-content:flex-end;margin-top:8px">
+          <button class="tt-btn tt-btn--primary tt-btn--sm" onclick="pcSaveSettings()">저장</button>
+        </div>
+      </div>
+    </div>`;
+  renderPcStatus();
+}
+
+// ═══════════════════════════════════════════════
 //  INIT
 // ═══════════════════════════════════════════════
 function init() {
@@ -1692,6 +1965,7 @@ function init() {
   renderSidebarPhoto();
   renderSidebarDateNav();
   navigateTo(ui.sec||'dashboard');
+  pcInit();
 }
 
 init();

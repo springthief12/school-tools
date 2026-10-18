@@ -1326,6 +1326,13 @@ function init() {
   initCollapsed();
   renderTimetable();
   renderDetailPanel();
+  // teacher-tool.html(PC 연동)이 컴시간 변경을 기록하면 화면 갱신
+  window.addEventListener('storage', e => {
+    if (e.key !== STORAGE_KEY) return;
+    loadData();
+    renderTimetable();
+    renderDetailPanel();
+  });
 }
 init();
 </script>
