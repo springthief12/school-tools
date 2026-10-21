@@ -437,6 +437,69 @@
     .tt-stu-mgr { background: var(--bg-page); border-radius: var(--radius-md); padding: 16px; margin-top: 14px; border: 1.5px solid var(--border); }
     .tt-stu-mgr-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 17px; font-weight: 700; }
 
+    /* ═══ ATTENDANCE STATS (기간별·개인별) ═══ */
+    .tt-as-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .tt-as-bar .tt-input { width: auto; padding: 7px 10px; font-size: 16px; }
+    .tt-as-presets { display: flex; gap: 4px; flex-wrap: wrap; }
+    .tt-as-days { margin-left: auto; font-size: 16px; color: var(--text-muted); }
+    .tt-as-sum { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin: 14px 0; }
+    .tt-as-sum-card { background: var(--bg-card); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); padding: 12px 16px; border-left: 4px solid var(--ios-gray3); }
+    .tt-as-sum-card .v { font-size: 27px; line-height: 1.2; }
+    .tt-as-sum-card .l { font-size: 15px; color: var(--text-muted); }
+    .tt-as-sum-card.k-결석 { border-left-color: var(--ios-red); }
+    .tt-as-sum-card.k-지각 { border-left-color: var(--ios-orange); }
+    .tt-as-sum-card.k-조퇴 { border-left-color: var(--ios-teal); }
+    .tt-as-sum-card.k-결과 { border-left-color: var(--ios-purple); }
+    .tt-as-scroll { overflow: auto; max-height: calc(100vh - 330px); }
+    .tt-as-mx { border-collapse: separate; border-spacing: 0; width: 100%; font-size: 15px; font-variant-numeric: tabular-nums; }
+    .tt-as-mx th, .tt-as-mx td { border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 5px 4px; text-align: center; white-space: nowrap; }
+    .tt-as-mx thead th { position: sticky; background: #F2F2F2; z-index: 2; font-size: 14px; line-height: 1.3; }
+    .tt-as-mx thead tr:first-child th { top: 0; }
+    .tt-as-mx thead tr:nth-child(2) th { top: 31px; }
+    .tt-as-mx .grp-end { border-right: 2px solid #555; }
+    .tt-as-mx thead tr:first-child th { height: 31px; }
+    .tt-as-mx .sticky-no   { position: sticky; left: 0; width: 44px; min-width: 44px; background: var(--bg-card); z-index: 1; }
+    .tt-as-mx .sticky-name { position: sticky; left: 44px; background: var(--bg-card); z-index: 1; text-align: left; padding-left: 10px; min-width: 110px; }
+    .tt-as-mx thead .sticky-no, .tt-as-mx thead .sticky-name { z-index: 3; background: #F2F2F2; }
+    .tt-as-printonly { display: none; }
+    .tt-as-mx td.c { min-width: 34px; color: var(--ios-gray2); cursor: pointer; }
+    .tt-as-mx td.c:hover { outline: 2px solid var(--accent); outline-offset: -2px; }
+    .tt-as-mx td.c.nz { background: #DCDCDC; color: var(--text-primary); }
+    .tt-as-mx td.tot { min-width: 44px; background: rgba(0,0,0,0.02); }
+    .tt-as-mx td.tot.nz { color: var(--ios-red); }
+    .tt-as-mx tbody tr:hover td { background-color: var(--accent-soft); }
+    .tt-as-mx tbody tr:hover td.c.nz { background: #CFCFCF; }
+    .tt-as-name { cursor: pointer; text-decoration: underline dotted var(--ios-gray3); text-underline-offset: 4px; }
+    .tt-as-name:hover { color: var(--accent-dark); }
+    .tt-as-mx tfoot td { background: #F7F7F7; font-weight: 700; position: sticky; bottom: 0; }
+    .tt-as-person-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .tt-as-person-name { font-size: 23px; }
+    .tt-as-total { font-size: 15px; color: var(--text-muted); }
+    .tt-as-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+    .tt-as-list td, .tt-as-list th { text-align: center; }
+    .tt-as-list td.memo { text-align: left; white-space: pre-wrap; }
+    .tt-as-kind { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 15px; }
+    .tt-as-kind.k-결석 { background: rgba(255,59,48,0.12); color: #b02020; }
+    .tt-as-kind.k-지각 { background: rgba(255,149,0,0.15); color: #8a4d00; }
+    .tt-as-kind.k-조퇴 { background: rgba(48,176,199,0.15); color: #0a6575; }
+    .tt-as-kind.k-결과 { background: rgba(175,82,222,0.13); color: #7030a8; }
+    .tt-seg { display: flex; gap: 4px; flex-wrap: wrap; }
+    .tt-seg-btn { padding: 7px 14px; border-radius: 8px; border: 1.5px solid var(--border); background: var(--bg-card); color: var(--text-secondary); font-family: var(--font); font-size: 16px; font-weight: 700; cursor: pointer; }
+    .tt-seg-btn.on { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+    .tt-stu-pick { display: grid; grid-template-columns: repeat(auto-fill,minmax(92px,1fr)); gap: 4px; max-height: 190px; overflow-y: auto; padding: 2px; }
+    .tt-stu-pick .tt-seg-btn { padding: 6px 4px; font-size: 15px; text-align: center; }
+    @media (max-width: 900px) { .tt-as-sum { grid-template-columns: repeat(2,1fr); } }
+    @media print {
+      .tt-sidebar, .tt-as-noprint, .tt-toast { display: none !important; }
+      .tt-as-printonly { display: block; font-size: 18px; margin-bottom: 8px; }
+      .tt-main { margin-left: 0; padding: 0; }
+      .tt-card { box-shadow: none; }
+      .tt-as-scroll { max-height: none; overflow: visible; }
+      .tt-as-mx { font-size: 11px; }
+      .tt-as-mx thead th, .tt-as-mx tfoot td { position: static; }
+      .tt-as-mx td.c.nz { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+
     /* ═══ LIFE GUIDANCE ═══ */
     .tt-lg-layout { display: flex; gap: 14px; min-height: calc(100vh - 200px); }
     .tt-lg-datesidebar { width: 178px; flex-shrink: 0; background: var(--bg-card); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); overflow-y: auto; max-height: calc(100vh - 200px); }
@@ -550,6 +613,9 @@
       <li class="tt-nav-item" data-section="attendance">
         <span class="tt-nav-icon">✅</span><span class="tt-nav-label">출석부</span>
       </li>
+      <li class="tt-nav-item" data-section="attstat">
+        <span class="tt-nav-icon">📊</span><span class="tt-nav-label">출결 현황</span>
+      </li>
       <li class="tt-nav-item" data-section="lifeguide">
         <span class="tt-nav-icon">📓</span><span class="tt-nav-label">생활지도</span>
       </li>
@@ -571,6 +637,7 @@
     <section id="sec-dashboard"  class="tt-section active"><div id="dash-root"></div></section>
     <section id="sec-timetable"  class="tt-section"><div id="tt-root"></div></section>
     <section id="sec-attendance" class="tt-section"><div id="att-root"></div></section>
+    <section id="sec-attstat"    class="tt-section"><div id="as-root"></div></section>
     <section id="sec-lifeguide"  class="tt-section"><div id="lg-root"></div></section>
     <section id="sec-duties"     class="tt-section"><div id="duties-root"></div></section>
     <section id="sec-schedule"   class="tt-section"><div id="sched-root"></div></section>
@@ -636,6 +703,13 @@ const SK_DU    = 'tt_duties_v1';
 const SK_SC    = 'tt_schedule_v1';
 const SK_UI    = 'tt_ui_state_v1';
 const SK_PHOTO = 'tt_profile_photo';
+const SK_STU   = 'tt_students_v1';       // 학생 명단 [{id,no,name}]
+const SK_REC   = 'tt_att_records_v1';    // 구조화 출결 기록 [{id,date,stuId,kind,reason,periods,memo}]
+const SK_SEAT_PREFIX = 'teachertool_seating_v1_'; // seating.html 명단 (읽기 전용)
+
+const AS_KINDS   = ['결석','지각','조퇴','결과'];
+const AS_REASONS = ['질병','미인정','기타','인정'];
+const AS_SLOTS   = ['조회','1교시','2교시','3교시','4교시','5교시','6교시','7교시','종례'];
 
 // ═══════════════════════════════════════════════
 //  UTILITIES
@@ -776,10 +850,13 @@ function save(key,data) {
 // ═══════════════════════════════════════════════
 let ttData = {}, att = {entries:{}}, lg = {entries:{}};
 let duties = {tasks:[]}, sched = {events:[]}, ui = {};
+let stu = {students:[]}, rec = {records:[]};
 
 function loadAll() {
   ttData  = load(SK_TT, {});
   att     = load(SK_ATT, {entries:{}});
+  stu     = load(SK_STU, {students:[]});
+  rec     = load(SK_REC, {records:[]});
   lg      = load(SK_LG,  {entries:{}});
   duties  = load(SK_DU,  {tasks:[]});
   sched   = load(SK_SC,  {events:[]});
@@ -799,6 +876,8 @@ const saveAtt = ()=>save(SK_ATT,att);
 const saveLg  = ()=>save(SK_LG,lg);
 const saveDu  = ()=>save(SK_DU,duties);
 const saveSc  = ()=>save(SK_SC,sched);
+const saveStu = ()=>save(SK_STU,stu);
+const saveRec = ()=>save(SK_REC,rec);
 
 // ═══════════════════════════════════════════════
 //  TOAST
@@ -835,6 +914,7 @@ function renderSection(id) {
   if(id==='dashboard')  renderDash();
   if(id==='timetable')  renderTT();
   if(id==='attendance') renderAtt();
+  if(id==='attstat')    renderAttStat();
   if(id==='lifeguide')  renderLg();
   if(id==='duties')     renderDuties();
   if(id==='schedule')   renderSched();
@@ -1353,6 +1433,437 @@ function attDel() {
 }
 function attNav(d) { ui.attDate=addDays(ui.attDate||todayKey(),d); saveUI(); renderAtt(); }
 function attNavToday() { ui.attDate=todayKey(); ui.attMonth=yearMonth(todayKey()); saveUI(); renderAtt(); }
+
+// ═══════════════════════════════════════════════
+//  ATTENDANCE STATS (기간별 · 개인별 출결 현황)
+// ═══════════════════════════════════════════════
+function asSchoolYear() { const d=new Date(); return d.getMonth()+1>=3?d.getFullYear():d.getFullYear()-1; }
+function asMonthEnd(ym) { const [y,m]=ym.split('-').map(Number); return dateToKey(new Date(y,m,0)); }
+function asPresets() {
+  const t=todayKey(), y=asSchoolYear(), ym=yearMonth(t), pm=prevMonthKey(ym), mon=weekMon(t);
+  const s2from=WEEKS[0].dates[0], s2to=WEEKS[WEEKS.length-1].dates[4];
+  return [
+    { k:'week',  label:'이번 주',   from:mon,         to:addDays(mon,4) },
+    { k:'month', label:'이번 달',   from:`${ym}-01`,  to:asMonthEnd(ym) },
+    { k:'prev',  label:'지난 달',   from:`${pm}-01`,  to:asMonthEnd(pm) },
+    { k:'s1',    label:'1학기',     from:`${y}-03-01`, to:addDays(s2from,-1) },
+    { k:'s2',    label:'2학기',     from:s2from,      to:s2to },
+    { k:'year',  label:'학년도 전체', from:`${y}-03-01`, to:asMonthEnd(`${y+1}-02`) },
+  ];
+}
+function asRange() {
+  if(!ui.asFrom||!ui.asTo) { const p=asPresets().find(p=>p.k==='month'); ui.asFrom=p.from; ui.asTo=p.to; }
+  return { from:ui.asFrom, to:ui.asTo };
+}
+function asCountSchoolDays(from,to) {
+  let n=0;
+  for(let k=from;k<=to;k=addDays(k,1)) if(!isWeekend(k)&&!HOLIDAYS[k]) n++;
+  return n;
+}
+// 수업일수: 평일−공휴일 자동 계산, 방학 등은 사용자가 덮어쓸 수 있음 (기간별로 기억)
+function asClassDays(from,to) {
+  const o=ui.asDays;
+  return o&&o.key===`${from}~${to}`?o.n:asCountSchoolDays(from,to);
+}
+function asSortedStudents() { return [...stu.students].sort((a,b)=>a.no-b.no); }
+function asStuById(id) { return stu.students.find(s=>s.id===id); }
+function asRecsIn(from,to,stuId) {
+  return rec.records
+    .filter(r=>r.date>=from&&r.date<=to&&(!stuId||r.stuId===stuId))
+    .sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:AS_KINDS.indexOf(a.kind)-AS_KINDS.indexOf(b.kind));
+}
+// tally[stuId][kind][reason] = 건수
+function asTally(recs) {
+  const t={};
+  recs.forEach(r=>{
+    t[r.stuId]=t[r.stuId]||{};
+    t[r.stuId][r.kind]=t[r.stuId][r.kind]||{};
+    t[r.stuId][r.kind][r.reason]=(t[r.stuId][r.kind][r.reason]||0)+1;
+  });
+  return t;
+}
+// 총계는 출석인정(인정)을 제외한 질병·미인정·기타의 합
+function asTot(byReason) { return byReason?['질병','미인정','기타'].reduce((s,x)=>s+(byReason[x]||0),0):0; }
+function asFmtDate(k) { return k.replace(/-/g,'.')+'.'; }
+function asPeriodsText(r) { return (r.periods||[]).join(','); }
+
+function renderAttStat() {
+  const view=ui.asView||'period';
+  const {from,to}=asRange();
+  const presets=asPresets();
+  const activeK=presets.find(p=>p.from===from&&p.to===to)?.k;
+  const days=asClassDays(from,to);
+  document.getElementById('as-root').innerHTML=`
+    <div class="tt-as-noprint" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:10px">
+      <div><div class="tt-page-title">📊 출결 현황</div><div class="tt-page-sub" style="margin-bottom:0">기간별 · 개인별 출결 집계 — 출석부 메모와 별도로 저장</div></div>
+      <div style="display:flex;gap:6px">
+        <button class="tt-btn tt-btn--ghost" onclick="asOpenStuModal()">👥 학생 명단</button>
+        <button class="tt-btn tt-btn--primary" onclick="asOpenRecModal(null)">+ 출결 입력</button>
+      </div>
+    </div>
+    <div class="tt-view-pills tt-as-noprint">
+      <button class="tt-view-pill ${view==='period'?'active':''}" onclick="asSetView('period')">📅 기간별 현황</button>
+      <button class="tt-view-pill ${view==='person'?'active':''}" onclick="asSetView('person')">👤 개인별 현황</button>
+    </div>
+    <div class="tt-card tt-as-noprint"><div class="tt-card-body tt-as-bar">
+      <input type="date" class="tt-input" value="${from}" onchange="asSetRange(this.value,null)">
+      <span>~</span>
+      <input type="date" class="tt-input" value="${to}" onchange="asSetRange(null,this.value)">
+      <div class="tt-as-presets">${presets.map(p=>
+        `<button class="tt-btn tt-btn--sm ${p.k===activeK?'tt-btn--primary':'tt-btn--ghost'}" onclick="asPreset('${p.k}')">${p.label}</button>`).join('')}</div>
+      <div class="tt-as-days" title="평일에서 공휴일을 뺀 값으로 자동 계산됩니다. 방학·재량휴업일 등은 직접 수정하세요.">
+        수업일수 <input type="number" min="0" class="tt-input" style="width:76px" value="${days}" onchange="asSetDays(this.value)">일
+      </div>
+    </div></div>
+    <div id="as-inner" style="margin-top:14px"></div>`;
+
+  const inner=document.getElementById('as-inner');
+  if(!stu.students.length) {
+    inner.innerHTML=`<div class="tt-empty"><div class="tt-empty-icon">👥</div>
+      <div class="tt-empty-text">먼저 학생 명단을 등록해주세요.<br>자리배치 도구에 저장한 명단도 불러올 수 있습니다.</div>
+      <button class="tt-btn tt-btn--primary" style="margin-top:10px" onclick="asOpenStuModal()">👥 학생 명단 등록</button></div>`;
+    return;
+  }
+  view==='period'?renderAsPeriod(inner,from,to,days):renderAsPerson(inner,from,to);
+}
+
+function renderAsPeriod(el,from,to,days) {
+  const recs=asRecsIn(from,to);
+  const tally=asTally(recs);
+  const all=asSortedStudents();
+  const rows=ui.asOnlyRec?all.filter(s=>tally[s.id]):all;
+
+  const sumCards=AS_KINDS.map(k=>{
+    const ks=recs.filter(r=>r.kind===k);
+    const counted=ks.filter(r=>r.reason!=='인정');
+    const people=new Set(counted.map(r=>r.stuId)).size;
+    const approved=ks.length-counted.length;
+    return `<div class="tt-as-sum-card k-${k}"><div class="v">${counted.length}<span style="font-size:16px">건</span></div>
+      <div class="l">${k} · ${people}명${approved?` · 인정 ${approved}건 별도`:''}</div></div>`;
+  }).join('');
+
+  const head1=AS_KINDS.map(k=>`<th colspan="4" class="grp-end">${k}</th>`).join('');
+  const head2=AS_KINDS.map(()=>AS_REASONS.map((r,i)=>`<th${i===3?' class="grp-end"':''}>${r}</th>`).join('')).join('');
+  const colSum={};
+  const body=rows.map(s=>{
+    const t=tally[s.id]||{};
+    const cells=AS_KINDS.map(k=>AS_REASONS.map((r,i)=>{
+      const n=t[k]?.[r]||0;
+      colSum[k+r]=(colSum[k+r]||0)+n;
+      const tip=n?recs.filter(x=>x.stuId===s.id&&x.kind===k&&x.reason===r).map(x=>fmtShort(x.date)).join(', ')+' — 클릭하면 상세 보기'
+                 :`클릭하면 ${r}${k} 입력`;
+      return `<td class="c${n?' nz':''}${i===3?' grp-end':''}" title="${esc(tip)}" onclick="asCellClick('${s.id}','${k}','${r}',${n})">${n}</td>`;
+    }).join('')).join('');
+    const tots=AS_KINDS.map(k=>{ const n=asTot(t[k]); colSum['tot'+k]=(colSum['tot'+k]||0)+n; return `<td class="tot${n?' nz':''}">${n}</td>`; }).join('');
+    const perfect=AS_KINDS.every(k=>!asTot(t[k]));
+    return `<tr>
+      <td class="sticky-no">${s.no}</td>
+      <td class="sticky-name"><span class="tt-as-name" onclick="asOpenStudent('${s.id}')" title="개인별 현황 보기">${esc(s.name)}</span></td>
+      <td>${days}</td>${cells}${tots}
+      <td>${perfect?'<span class="tt-badge tt-badge--green" style="font-size:13px;padding:1px 8px">개근</span>':''}</td>
+    </tr>`;
+  }).join('');
+  const foot=`<tr><td class="sticky-no"></td><td class="sticky-name">합계</td><td></td>
+    ${AS_KINDS.map(k=>AS_REASONS.map((r,i)=>`<td${i===3?' class="grp-end"':''}>${colSum[k+r]||0}</td>`).join('')).join('')}
+    ${AS_KINDS.map(k=>`<td>${colSum['tot'+k]||0}</td>`).join('')}<td></td></tr>`;
+
+  el.innerHTML=`
+    <div class="tt-as-sum tt-as-noprint">${sumCards}</div>
+    <div class="tt-as-printonly">기간별 출결 현황 (${asFmtDate(from)} ~ ${asFmtDate(to)}, 수업일수 ${days}일)</div>
+    <div class="tt-card">
+      <div class="tt-card-header tt-as-noprint">
+        <div class="tt-card-title">· ${asFmtDate(from)} ~ ${asFmtDate(to)} <span class="tt-as-total">${rows.length}명</span></div>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+          <label style="font-size:15px;display:flex;align-items:center;gap:5px;cursor:pointer">
+            <input type="checkbox" ${ui.asOnlyRec?'checked':''} onchange="asToggleOnlyRec(this.checked)"> 기록 있는 학생만</label>
+          <button class="tt-btn tt-btn--ghost tt-btn--sm" onclick="asExportPeriodCsv()">⬇ 엑셀(CSV)</button>
+          <button class="tt-btn tt-btn--ghost tt-btn--sm" onclick="window.print()">🖨 출력</button>
+        </div>
+      </div>
+      <div class="tt-as-scroll">
+        <table class="tt-as-mx">
+          <thead>
+            <tr><th rowspan="2" class="sticky-no">번호</th><th rowspan="2" class="sticky-name">성명</th><th rowspan="2">수업<br>일수</th>
+              ${head1}<th rowspan="2">결석<br>총계</th><th rowspan="2">지각<br>총계</th><th rowspan="2">조퇴<br>총계</th><th rowspan="2">결과<br>총계</th><th rowspan="2">비고</th></tr>
+            <tr>${head2}</tr>
+          </thead>
+          <tbody>${body||`<tr><td colspan="25" style="padding:24px;color:var(--text-muted)">이 기간에 출결 기록이 있는 학생이 없습니다.</td></tr>`}</tbody>
+          <tfoot>${foot}</tfoot>
+        </table>
+      </div>
+    </div>
+    <div class="tt-as-noprint" style="font-size:14px;color:var(--text-muted);margin-top:8px">
+      ※ 총계는 출석인정(인정)을 제외한 질병·미인정·기타의 합입니다. 숫자 칸을 누르면 상세 보기, 0인 칸을 누르면 해당 항목으로 바로 입력합니다.</div>`;
+}
+
+function renderAsPerson(el,from,to) {
+  const list=asSortedStudents();
+  const cur=asStuById(ui.asStu)||list[0];
+  const idx=list.indexOf(cur);
+  const recs=asRecsIn(from,to,cur.id);
+  const t=asTally(recs)[cur.id]||{};
+  const chips=AS_KINDS.map(k=>{
+    const n=asTot(t[k]), a=t[k]?.['인정']||0;
+    return `<span class="tt-as-kind k-${k}">${k} ${n}${a?` (+인정 ${a})`:''}</span>`;
+  }).join('');
+  const opts=list.map(s=>`<option value="${s.id}"${s.id===cur.id?' selected':''}>${s.no}번 ${esc(s.name)}</option>`).join('');
+  const rows=recs.map(r=>`<tr>
+      <td>${esc(cur.name)}</td>
+      <td>${asFmtDate(r.date)} <span style="color:var(--text-muted);font-size:14px">(${DAY_FULL[parseKey(r.date).getDay()]})</span></td>
+      <td><span class="tt-as-kind k-${r.kind}">${r.reason}${r.kind}</span></td>
+      <td>${esc(asPeriodsText(r))}</td>
+      <td class="memo">${esc(r.memo||'')}</td>
+      <td class="tt-as-noprint" style="white-space:nowrap">
+        <button class="tt-btn tt-btn--ghost tt-btn--icon tt-btn--sm" onclick="asOpenRecModal('${r.id}')" title="수정">✏️</button>
+        <button class="tt-btn tt-btn--ghost tt-btn--icon tt-btn--sm" onclick="asDelRec('${r.id}')" title="삭제">🗑</button>
+      </td></tr>`).join('');
+
+  el.innerHTML=`
+    <div class="tt-as-printonly">개인별 출결 현황 (${asFmtDate(from)} ~ ${asFmtDate(to)})</div>
+    <div class="tt-card">
+      <div class="tt-card-header" style="flex-wrap:wrap;gap:10px">
+        <div class="tt-as-person-head">
+          <button class="tt-btn tt-btn--ghost tt-btn--icon tt-as-noprint" onclick="asStuNav(-1)" ${idx<=0?'disabled':''} title="이전 학생 (←)">‹</button>
+          <select class="tt-select tt-as-noprint" style="width:auto" onchange="asOpenStudent(this.value)">${opts}</select>
+          <button class="tt-btn tt-btn--ghost tt-btn--icon tt-as-noprint" onclick="asStuNav(1)" ${idx>=list.length-1?'disabled':''} title="다음 학생 (→)">›</button>
+          <span class="tt-as-person-name">${cur.no}번 ${esc(cur.name)}</span>
+          <span class="tt-as-total">Total ${recs.length}</span>
+        </div>
+        <div style="display:flex;gap:6px" class="tt-as-noprint">
+          <button class="tt-btn tt-btn--primary tt-btn--sm" onclick="asOpenRecModal(null,{stuId:'${cur.id}'})">+ 이 학생 입력</button>
+          <button class="tt-btn tt-btn--ghost tt-btn--sm" onclick="asExportPersonCsv()">⬇ 엑셀(CSV)</button>
+          <button class="tt-btn tt-btn--ghost tt-btn--sm" onclick="window.print()">🖨 출력</button>
+        </div>
+      </div>
+      <div class="tt-card-body" style="padding-bottom:6px"><div class="tt-as-chips">${chips}</div></div>
+      ${recs.length?`<table class="tt-table tt-as-list">
+        <thead><tr><th>성명</th><th>출결일자</th><th>출결구분</th><th>결시교시</th><th>사유</th><th class="tt-as-noprint"></th></tr></thead>
+        <tbody>${rows}</tbody></table>`
+      :`<div class="tt-empty" style="padding:30px"><div class="tt-empty-icon">🌱</div><div class="tt-empty-text">이 기간에 출결 기록이 없습니다.</div></div>`}
+    </div>
+    <div class="tt-as-noprint" style="font-size:14px;color:var(--text-muted);margin-top:8px">※ 키보드 ← → 로 학생을 넘겨볼 수 있습니다.</div>`;
+}
+
+function asSetView(v) { ui.asView=v; saveUI(); renderAttStat(); }
+function asSetRange(from,to) {
+  if(from) ui.asFrom=from;
+  if(to)   ui.asTo=to;
+  if(ui.asFrom>ui.asTo) [ui.asFrom,ui.asTo]=[ui.asTo,ui.asFrom];
+  saveUI(); renderAttStat();
+}
+function asPreset(k) { const p=asPresets().find(x=>x.k===k); ui.asFrom=p.from; ui.asTo=p.to; saveUI(); renderAttStat(); }
+function asSetDays(v) {
+  const {from,to}=asRange();
+  ui.asDays={ key:`${from}~${to}`, n:Math.max(0,parseInt(v,10)||0) };
+  saveUI(); renderAttStat();
+}
+function asToggleOnlyRec(on) { ui.asOnlyRec=on; saveUI(); renderAttStat(); }
+function asOpenStudent(id) { ui.asStu=id; ui.asView='person'; saveUI(); renderAttStat(); }
+function asStuNav(d) {
+  const list=asSortedStudents();
+  const i=list.findIndex(s=>s.id===ui.asStu);
+  const next=list[Math.max(0,Math.min(list.length-1,(i<0?0:i)+d))];
+  if(next) asOpenStudent(next.id);
+}
+function asCellClick(stuId,kind,reason,n) {
+  if(n) return asOpenStudent(stuId);
+  const {from,to}=asRange(), t=todayKey();
+  asOpenRecModal(null,{ stuId, kind, reason, date:t>=from&&t<=to?t:to });
+}
+document.addEventListener('keydown',e=>{
+  if(ui.sec!=='attstat'||ui.asView!=='person') return;
+  if(document.getElementById('modalOverlay').style.display!=='none') return;
+  if(/INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) return;
+  if(e.key==='ArrowLeft')  asStuNav(-1);
+  if(e.key==='ArrowRight') asStuNav(1);
+});
+
+// ── 출결 입력/수정 모달 ──
+let _asDraft=null;
+function asOpenRecModal(id,pre={}) {
+  const r=id?rec.records.find(x=>x.id===id):null;
+  _asDraft=r
+    ? { edit:true, stuIds:[r.stuId], kind:r.kind, reason:r.reason, periods:[...(r.periods||[])] }
+    : { edit:false, stuIds:pre.stuId?[pre.stuId]:[], kind:pre.kind||'결석', reason:pre.reason||'질병', periods:[] };
+  const date=r?.date||pre.date||todayKey();
+  const seg=(field,vals)=>vals.map(v=>
+    `<button type="button" class="tt-seg-btn${_asDraft[field]===v?' on':''}" onclick="asDraftSet('${field}','${v}',this)">${v}</button>`).join('');
+  const stuBtns=asSortedStudents().map(s=>
+    `<button type="button" class="tt-seg-btn${_asDraft.stuIds.includes(s.id)?' on':''}" data-id="${s.id}" onclick="asDraftStu('${s.id}',this)">${s.no} ${esc(s.name)}</button>`).join('');
+  const slotBtns=AS_SLOTS.map(p=>
+    `<button type="button" class="tt-seg-btn${_asDraft.periods.includes(p)?' on':''}" data-p="${p}" onclick="asDraftPeriod('${p}',this)">${p}</button>`).join('');
+  openModal(`
+    <div class="tt-modal-head">
+      <div class="tt-modal-title">${r?'출결 수정':'+ 출결 입력'}</div>
+      <button class="tt-modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="tt-modal-body">
+      <div class="tt-form-group"><label class="tt-form-label">학생 * <span id="as-stu-cnt" style="color:var(--text-muted);font-weight:400">${r?'':`(여러 명 선택 가능 · ${_asDraft.stuIds.length}명)`}</span></label>
+        <div class="tt-stu-pick">${stuBtns}</div></div>
+      <div class="tt-form-row">
+        <div class="tt-form-group"><label class="tt-form-label">날짜 *</label>
+          <input id="as-d" class="tt-input" type="date" value="${date}"></div>
+        ${r?'':`<div class="tt-form-group"><label class="tt-form-label">종료일 (여러 날)</label>
+          <input id="as-e" class="tt-input" type="date"></div>`}
+      </div>
+      ${r?'':`<div style="font-size:14px;color:var(--text-muted);margin:-8px 0 12px">종료일을 넣으면 주말·공휴일을 뺀 날마다 1건씩 기록됩니다.</div>`}
+      <div class="tt-form-group"><label class="tt-form-label">출결 구분 *</label><div class="tt-seg" data-field="kind">${seg('kind',AS_KINDS)}</div></div>
+      <div class="tt-form-group"><label class="tt-form-label">사유 구분 *</label><div class="tt-seg" data-field="reason">${seg('reason',AS_REASONS)}</div></div>
+      <div class="tt-form-group" id="as-periods" style="${_asDraft.kind==='결석'?'display:none':''}">
+        <label class="tt-form-label">결시 교시</label>
+        <div class="tt-seg">${slotBtns}</div></div>
+      <div class="tt-form-group"><label class="tt-form-label">사유 (메모)</label>
+        <input id="as-m" class="tt-input" maxlength="100" placeholder="예: 감기로 병원 진료, 진료확인서 제출" value="${esc(r?.memo||'')}"></div>
+    </div>
+    <div class="tt-modal-foot">
+      ${r?`<button class="tt-btn tt-btn--danger" onclick="asDelRec('${r.id}')">삭제</button>`:''}
+      <button class="tt-btn tt-btn--ghost" onclick="closeModal()">취소</button>
+      <button class="tt-btn tt-btn--primary" onclick="asSaveRec(${r?`'${r.id}'`:'null'})">저장</button>
+    </div>`);
+}
+function asDraftSet(field,val,el) {
+  _asDraft[field]=val;
+  el.parentElement.querySelectorAll('.tt-seg-btn').forEach(b=>b.classList.toggle('on',b===el));
+  if(field==='kind') document.getElementById('as-periods').style.display=val==='결석'?'none':'';
+}
+function asDraftStu(id,el) {
+  if(_asDraft.edit) {
+    _asDraft.stuIds=[id];
+    el.parentElement.querySelectorAll('.tt-seg-btn').forEach(b=>b.classList.toggle('on',b===el));
+    return;
+  }
+  const on=_asDraft.stuIds.includes(id);
+  _asDraft.stuIds=on?_asDraft.stuIds.filter(x=>x!==id):[..._asDraft.stuIds,id];
+  el.classList.toggle('on',!on);
+  document.getElementById('as-stu-cnt').textContent=`(여러 명 선택 가능 · ${_asDraft.stuIds.length}명)`;
+}
+function asDraftPeriod(p,el) {
+  const on=_asDraft.periods.includes(p);
+  _asDraft.periods=on?_asDraft.periods.filter(x=>x!==p):[..._asDraft.periods,p];
+  el.classList.toggle('on',!on);
+}
+function asSaveRec(id) {
+  const d=_asDraft;
+  const date=document.getElementById('as-d')?.value;
+  const end=document.getElementById('as-e')?.value||'';
+  const memo=(document.getElementById('as-m')?.value||'').trim();
+  if(!d.stuIds.length) return showToast('학생을 선택해주세요.','danger');
+  if(!date) return showToast('날짜를 입력해주세요.','danger');
+  if(end&&end<date) return showToast('종료일이 날짜보다 앞설 수 없습니다.','danger');
+  const periods=d.kind==='결석'?[]:AS_SLOTS.filter(p=>d.periods.includes(p));
+  const fields={ kind:d.kind, reason:d.reason, periods, memo };
+
+  if(id) {
+    rec={...rec,records:rec.records.map(r=>r.id===id?{...r,...fields,date,stuId:d.stuIds[0]}:r)};
+  } else {
+    const dates=[];
+    if(end&&end>date) { for(let k=date;k<=end;k=addDays(k,1)) if(!isWeekend(k)&&!HOLIDAYS[k]) dates.push(k); }
+    else dates.push(date);
+    if(!dates.length) return showToast('기간 안에 수업일이 없습니다.','danger');
+    // 같은 학생·날짜·구분 기록은 새 입력으로 교체
+    const keys=new Set();
+    const added=d.stuIds.flatMap(stuId=>dates.map(dt=>{ keys.add(`${stuId}|${dt}|${d.kind}`); return {id:genId(),date:dt,stuId,...fields}; }));
+    const kept=rec.records.filter(r=>!keys.has(`${r.stuId}|${r.date}|${r.kind}`));
+    const replaced=rec.records.length-kept.length;
+    rec={...rec,records:[...kept,...added]};
+    saveRec(); closeModal(); renderAttStat();
+    return showToast(`${added.length}건 저장되었습니다.${replaced?` (기존 ${replaced}건 교체)`:''}`,'success');
+  }
+  saveRec(); closeModal(); renderAttStat(); showToast('저장되었습니다.','success');
+}
+function asDelRec(id) {
+  if(!confirm('이 출결 기록을 삭제할까요?')) return;
+  rec={...rec,records:rec.records.filter(r=>r.id!==id)};
+  saveRec(); closeModal(); renderAttStat(); showToast('삭제되었습니다.');
+}
+
+// ── 학생 명단 ──
+function asSeatPresets() {
+  const out=[];
+  try {
+    for(let i=0;i<localStorage.length;i++) {
+      const key=localStorage.key(i);
+      if(!key.startsWith(SK_SEAT_PREFIX)) continue;
+      const p=JSON.parse(localStorage.getItem(key));
+      const list=(p.students||[]).map((s,j)=>typeof s==='string'?{num:String(j+1),name:s}:s).filter(s=>s.name);
+      if(list.length) out.push({ key, label:`${p.grade}학년 ${p.class}반 (${list.length}명)`, list });
+    }
+  } catch {}
+  return out;
+}
+function asOpenStuModal() {
+  const txt=asSortedStudents().map(s=>`${s.no} ${s.name}`).join('\n');
+  const seats=asSeatPresets();
+  openModal(`
+    <div class="tt-modal-head">
+      <div class="tt-modal-title">👥 학생 명단</div>
+      <button class="tt-modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="tt-modal-body">
+      ${seats.length?`<div class="tt-form-group"><label class="tt-form-label">자리배치 명단 불러오기</label>
+        <div class="tt-seg">${seats.map(s=>`<button type="button" class="tt-seg-btn" onclick="asImportSeat('${esc(s.key)}')">${esc(s.label)}</button>`).join('')}</div></div>`:''}
+      <div class="tt-form-group"><label class="tt-form-label">한 줄에 한 명 — "번호 이름" 또는 "이름"</label>
+        <textarea id="as-stu-ta" class="tt-textarea" style="min-height:280px" placeholder="1 김동욱&#10;2 김민찬&#10;3 김범준">${esc(txt)}</textarea></div>
+      <div style="font-size:14px;color:var(--text-muted)">엑셀에서 번호·이름 두 열을 복사해 붙여넣어도 됩니다. 이름이 같으면 기존 출결 기록이 그대로 이어집니다.</div>
+    </div>
+    <div class="tt-modal-foot">
+      <button class="tt-btn tt-btn--ghost" onclick="closeModal()">취소</button>
+      <button class="tt-btn tt-btn--primary" onclick="asSaveStu()">저장</button>
+    </div>`);
+}
+function asImportSeat(key) {
+  const p=asSeatPresets().find(s=>s.key===key); if(!p) return;
+  document.getElementById('as-stu-ta').value=p.list.map((s,i)=>`${s.num||i+1} ${s.name}`).join('\n');
+  showToast(`${p.list.length}명 불러왔습니다. 저장을 눌러 확정하세요.`);
+}
+function asSaveStu() {
+  const lines=(document.getElementById('as-stu-ta')?.value||'').split('\n').map(l=>l.trim()).filter(Boolean);
+  let auto=0;
+  const parsed=lines.map(l=>{
+    const m=l.match(/^(\d+)[\s.,)번]+(.+)$/);
+    const no=m?parseInt(m[1],10):auto+1;
+    auto=no;
+    return { no, name:(m?m[2]:l).trim() };
+  });
+  // 기존 id 재사용: 번호+이름 일치 → 이름만 일치 순서로 매칭
+  const pool=[...stu.students];
+  const take=fn=>{ const i=pool.findIndex(fn); return i<0?null:pool.splice(i,1)[0]; };
+  const matched=parsed.map(p=>take(s=>s.no===p.no&&s.name===p.name));
+  const next=parsed.map((p,i)=>({ id:(matched[i]||take(s=>s.name===p.name))?.id||genId(), ...p }));
+  const removedIds=new Set(pool.map(s=>s.id));
+  const orphan=rec.records.filter(r=>removedIds.has(r.stuId)).length;
+  if(orphan&&!confirm(`명단에서 빠진 학생 ${pool.length}명의 출결 기록 ${orphan}건이 함께 삭제됩니다. 계속할까요?`)) return;
+  stu={...stu,students:next};
+  if(orphan) { rec={...rec,records:rec.records.filter(r=>!removedIds.has(r.stuId))}; saveRec(); }
+  saveStu(); closeModal(); renderAttStat(); showToast(`학생 ${next.length}명 저장되었습니다.`,'success');
+}
+
+// ── 내보내기 ──
+function asDownloadCsv(filename,rows) {
+  const csv='﻿'+rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\r\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+  a.download=filename; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+function asExportPeriodCsv() {
+  const {from,to}=asRange(), days=asClassDays(from,to);
+  const recs=asRecsIn(from,to), tally=asTally(recs);
+  const head=['번호','성명','수업일수',
+    ...AS_KINDS.flatMap(k=>AS_REASONS.map(r=>`${k}-${r}`)), ...AS_KINDS.map(k=>`${k}총계`)];
+  const students=asSortedStudents().filter(s=>!ui.asOnlyRec||tally[s.id]);
+  const body=students.map(s=>{
+    const t=tally[s.id]||{};
+    return [s.no,s.name,days,...AS_KINDS.flatMap(k=>AS_REASONS.map(r=>t[k]?.[r]||0)),...AS_KINDS.map(k=>asTot(t[k]))];
+  });
+  asDownloadCsv(`출결현황_${from}_${to}.csv`,[head,...body]);
+}
+function asExportPersonCsv() {
+  const {from,to}=asRange();
+  const s=asStuById(ui.asStu)||asSortedStudents()[0];
+  const body=asRecsIn(from,to,s.id).map(r=>[s.name,asFmtDate(r.date),r.reason+r.kind,asPeriodsText(r),r.memo||'']);
+  asDownloadCsv(`출결현황_${s.no}번${s.name}_${from}_${to}.csv`,[['성명','출결일자','출결구분','결시교시','사유'],...body]);
+}
 
 // ═══════════════════════════════════════════════
 //  LIFE GUIDANCE (month calendar + free-text diary)
